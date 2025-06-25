@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<table border="1">
+    <tr><th>Oblast</th><th>District</th><th>Settlement</th><th>Court</th></tr>
+    {% for row in rows %}
+    <tr>
+        <td>{{ row.oblast }}</td>
+        <td>{{ row.district }}</td>
+        <td>{{ row.settlement }}</td>
+        <td>{{ row.court }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
