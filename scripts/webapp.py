@@ -1,9 +1,24 @@
 from flask import Flask, request, render_template, send_file, redirect, url_for
 import csv
 import io
+from pathlib import Path
+import sys
 from typing import List, Dict
 
-app = Flask(__name__)
+BASE_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BASE_DIR.parent
+
+if __package__ in (None, ""):
+    sys.path.append(str(ROOT_DIR))
+
+app = Flask(__name__, template_folder=str(ROOT_DIR / "templates"))
+
+from scripts.collect_official_sources import (  # noqa: E402,E401
+    ADMINISTRATIVE_HIERARCHY,
+    OFFICIAL_SOURCES,
+    DecisionRegistry,
+    OfficialSourceCollector,
+)
 
 
 def normalize(text: str) -> str:
@@ -74,6 +89,43 @@ def batch():
         processed = process_file(rows, normalise=normalise)
         return render_template("batch_result.html", rows=processed)
     return render_template("batch.html")
+
+
+@app.route("/official-sources")
+def official_sources():
+    download = request.args.get("download")
+    collector = OfficialSourceCollector(OFFICIAL_SOURCES)
+    registry = collector.collect(DecisionRegistry())
+
+    if download == "csv":
+        output = io.StringIO()
+        registry.to_csv(output)
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode("utf-8")),
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name="official_decisions.csv",
+        )
+
+    if download == "json":
+        output = io.StringIO()
+        registry.to_json(output, ensure_ascii=False)
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode("utf-8")),
+            mimetype="application/json",
+            as_attachment=True,
+            download_name="official_decisions.json",
+        )
+
+    return render_template(
+        "official_sources.html",
+        hierarchy=ADMINISTRATIVE_HIERARCHY,
+        registry=registry.to_dict(),
+        errors=registry.errors,
+        sources=OFFICIAL_SOURCES,
+    )
 
 
 @app.route("/normalize", methods=["GET", "POST"])
