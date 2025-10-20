@@ -1,3 +1,10 @@
+# Database files
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+*.db
+*.sqlite
+
 # Python
 __pycache__/
 *.pyc
