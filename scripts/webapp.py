@@ -1,25 +1,42 @@
 from flask import Flask, request, render_template, send_file, redirect, url_for
 import csv
 import io
-from typing import List, Dict
+from typing import List, Dict, Optional
+import sys
+from pathlib import Path
+
+# Додати шлях до модуля database
+sys.path.insert(0, str(Path(__file__).parent))
+
+from database import (
+    find_court_by_jurisdiction,
+    normalize_text,
+    search_settlements,
+    get_all_oblasts,
+    DB_PATH
+)
 
 app = Flask(__name__)
 
 
 def normalize(text: str) -> str:
-    """Very basic normalisation for demonstration."""
+    """Нормалізація тексту для сумісності зі старим кодом."""
     return " ".join(text.strip().title().split())
 
 
-def resolve_code(oblast: str, district: str, settlement: str) -> str:
-    """Return a dummy code built from components."""
-    parts = [normalize(p) for p in (oblast, district, settlement) if p]
-    return "-".join(parts)
+def find_court_info(oblast: str, district: str, settlement: str) -> Optional[Dict]:
+    """
+    Знаходить суд за адресою
 
-
-def find_court(code: str) -> str:
-    """Dummy lookup of court by code."""
-    return f"Court for {code}"
+    Returns:
+        Словник з інформацією про суд або None
+    """
+    court = find_court_by_jurisdiction(
+        oblast_name=oblast if oblast else None,
+        raion_name=district if district else None,
+        settlement_name=settlement if settlement else None
+    )
+    return court
 
 
 def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Dict[str, str]]:
@@ -33,13 +50,24 @@ def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Di
             oblast = normalize(oblast)
             district = normalize(district)
             settlement = normalize(settlement)
-        code = resolve_code(oblast, district, settlement)
-        court = find_court(code)
+
+        # Знайти суд за адресою
+        court_info = find_court_info(oblast, district, settlement)
+
+        if court_info:
+            court_text = f"{court_info['name']}"
+            if court_info.get('address'):
+                court_text += f" (адреса: {court_info['address']})"
+            if court_info.get('phone'):
+                court_text += f", тел: {court_info['phone']}"
+        else:
+            court_text = "Суд не знайдено"
+
         processed.append({
             "oblast": oblast,
             "district": district,
             "settlement": settlement,
-            "court": court,
+            "court": court_text,
         })
     return processed
 
@@ -55,10 +83,29 @@ def index():
             oblast = normalize(oblast)
             district = normalize(district)
             settlement = normalize(settlement)
-        code = resolve_code(oblast, district, settlement)
-        court = find_court(code)
-        return render_template("result.html", result=court)
-    return render_template("index.html")
+
+        # Знайти суд за адресою
+        court_info = find_court_info(oblast, district, settlement)
+
+        if court_info:
+            result = {
+                'name': court_info['name'],
+                'full_name': court_info.get('full_name', ''),
+                'type': court_info.get('type', ''),
+                'address': court_info.get('address', ''),
+                'phone': court_info.get('phone', ''),
+                'email': court_info.get('email', ''),
+                'website': court_info.get('website', ''),
+            }
+        else:
+            result = None
+
+        return render_template("result.html", result=result,
+                             search_params={'oblast': oblast, 'district': district, 'settlement': settlement})
+
+    # Перевірити чи існує база даних
+    db_exists = DB_PATH.exists()
+    return render_template("index.html", db_exists=db_exists)
 
 
 @app.route("/batch", methods=["GET", "POST"])
