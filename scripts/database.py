@@ -40,22 +40,20 @@ def find_oblast(oblast_name: str) -> Optional[Dict[str, Any]]:
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # Спробувати точний пошук
-        result = cursor.execute(
-            "SELECT * FROM oblasts WHERE LOWER(name) = ?",
-            (normalized_name,)
-        ).fetchone()
+        # Отримати всі області та порівняти в Python (SQLite LOWER не працює з кирилицею)
+        results = cursor.execute("SELECT * FROM oblasts").fetchall()
 
-        if result:
-            return dict(result)
+        # Точний пошук
+        for row in results:
+            if normalize_text(row['name']) == normalized_name:
+                return dict(row)
 
-        # Спробувати пошук по частковому співпадінню
-        result = cursor.execute(
-            "SELECT * FROM oblasts WHERE LOWER(name) LIKE ?",
-            (f"%{normalized_name}%",)
-        ).fetchone()
+        # Частковий пошук
+        for row in results:
+            if normalized_name in normalize_text(row['name']):
+                return dict(row)
 
-        return dict(result) if result else None
+        return None
 
 
 def find_raion(raion_name: str, oblast_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
@@ -70,30 +68,25 @@ def find_raion(raion_name: str, oblast_id: Optional[int] = None) -> Optional[Dic
 
         if oblast_id:
             # Пошук в межах області
-            result = cursor.execute(
-                "SELECT * FROM raions WHERE LOWER(name) = ? AND oblast_id = ?",
-                (normalized_name, oblast_id)
-            ).fetchone()
-
-            if not result:
-                result = cursor.execute(
-                    "SELECT * FROM raions WHERE LOWER(name) LIKE ? AND oblast_id = ?",
-                    (f"%{normalized_name}%", oblast_id)
-                ).fetchone()
+            results = cursor.execute(
+                "SELECT * FROM raions WHERE oblast_id = ?",
+                (oblast_id,)
+            ).fetchall()
         else:
             # Пошук без прив'язки до області
-            result = cursor.execute(
-                "SELECT * FROM raions WHERE LOWER(name) = ?",
-                (normalized_name,)
-            ).fetchone()
+            results = cursor.execute("SELECT * FROM raions").fetchall()
 
-            if not result:
-                result = cursor.execute(
-                    "SELECT * FROM raions WHERE LOWER(name) LIKE ?",
-                    (f"%{normalized_name}%",)
-                ).fetchone()
+        # Точний пошук
+        for row in results:
+            if normalize_text(row['name']) == normalized_name:
+                return dict(row)
 
-        return dict(result) if result else None
+        # Частковий пошук
+        for row in results:
+            if normalized_name in normalize_text(row['name']):
+                return dict(row)
+
+        return None
 
 
 def find_settlement(settlement_name: str, oblast_id: Optional[int] = None,
@@ -108,8 +101,8 @@ def find_settlement(settlement_name: str, oblast_id: Optional[int] = None,
         cursor = conn.cursor()
 
         # Побудувати запит з урахуванням фільтрів
-        query = "SELECT * FROM settlements WHERE LOWER(name) = ?"
-        params = [normalized_name]
+        query = "SELECT * FROM settlements WHERE 1=1"
+        params = []
 
         if oblast_id:
             query += " AND oblast_id = ?"
@@ -119,24 +112,19 @@ def find_settlement(settlement_name: str, oblast_id: Optional[int] = None,
             query += " AND raion_id = ?"
             params.append(raion_id)
 
-        result = cursor.execute(query, params).fetchone()
+        results = cursor.execute(query, params).fetchall()
 
-        # Якщо не знайдено, спробувати часткове співпадіння
-        if not result:
-            query = "SELECT * FROM settlements WHERE LOWER(name) LIKE ?"
-            params = [f"%{normalized_name}%"]
+        # Точний пошук
+        for row in results:
+            if normalize_text(row['name']) == normalized_name:
+                return dict(row)
 
-            if oblast_id:
-                query += " AND oblast_id = ?"
-                params.append(oblast_id)
+        # Частковий пошук
+        for row in results:
+            if normalized_name in normalize_text(row['name']):
+                return dict(row)
 
-            if raion_id:
-                query += " AND raion_id = ?"
-                params.append(raion_id)
-
-            result = cursor.execute(query, params).fetchone()
-
-        return dict(result) if result else None
+        return None
 
 
 def find_court_by_jurisdiction(oblast_name: Optional[str] = None,
@@ -201,12 +189,12 @@ def find_court_by_jurisdiction(oblast_name: Optional[str] = None,
                 return dict(result)
 
         if raion_id:
-            # Пошук по району
+            # Пошук по району (без конкретного населеного пункту)
             result = cursor.execute(
                 """
                 SELECT c.* FROM courts c
                 JOIN jurisdiction j ON c.id = j.court_id
-                WHERE j.raion_id = ? AND j.settlement_id IS NULL
+                WHERE j.raion_id = ?
                 LIMIT 1
                 """,
                 (raion_id,)
@@ -221,7 +209,7 @@ def find_court_by_jurisdiction(oblast_name: Optional[str] = None,
                 """
                 SELECT c.* FROM courts c
                 JOIN jurisdiction j ON c.id = j.court_id
-                WHERE j.oblast_id = ? AND j.raion_id IS NULL AND j.settlement_id IS NULL
+                WHERE j.oblast_id = ?
                 LIMIT 1
                 """,
                 (oblast_id,)
