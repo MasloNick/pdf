@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Одиночна адреса - Нормалізація адрес{% endblock %}
+
+{% block content %}
+<h2 style="color: #667eea; margin-bottom: 30px;">Обробка одиночної адреси</h2>
+
+<form method="post">
+    <div class="form-group">
+        <label>Повна адреса (рекомендовано):</label>
+        <textarea name="full_address" placeholder="Наприклад: 01001, Київська область, м. Київ, Печерський район, вул. Хрещатик, 1"></textarea>
+        <small style="color: #666; display: block; margin-top: 5px;">Або заповніть окремі поля нижче:</small>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+            <label>Область:</label>
+            <input type="text" name="oblast" placeholder="Київська область">
+        </div>
+
+        <div class="form-group">
+            <label>Район:</label>
+            <input type="text" name="district" placeholder="Шевченківський район">
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+            <label>Місто/Населений пункт:</label>
+            <input type="text" name="city" placeholder="м. Київ">
+        </div>
+
+        <div class="form-group">
+            <label>Вулиця:</label>
+            <input type="text" name="street" placeholder="вул. Хрещатик">
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+            <label>Будинок:</label>
+            <input type="text" name="house" placeholder="10">
+        </div>
+
+        <div class="form-group">
+            <label>Квартира:</label>
+            <input type="text" name="apartment" placeholder="5">
+        </div>
+
+        <div class="form-group">
+            <label>Поштовий індекс:</label>
+            <input type="text" name="postal_code" placeholder="01001">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="checkbox-label">
+            <input type="checkbox" name="normalize" checked>
+            <span>Нормалізувати адресу відповідно до стандартів Укрпошти</span>
+        </label>
+    </div>
+
+    <button type="submit" class="btn">Обробити адресу</button>
+    <a href="/" class="btn btn-secondary" style="margin-left: 10px;">Назад</a>
+</form>
+{% endblock %}

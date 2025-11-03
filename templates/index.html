@@ -1,10 +1,60 @@
 {% extends 'base.html' %}
+{% block title %}Головна - Нормалізація адрес{% endblock %}
+
 {% block content %}
-<form method="post">
-    <label>Oblast: <input type="text" name="oblast"></label><br>
-    <label>District: <input type="text" name="district"></label><br>
-    <label>Settlement: <input type="text" name="settlement"></label><br>
-    <label><input type="checkbox" name="normalise"> Normalise address</label><br>
-    <button type="submit">Search</button>
-</form>
+<div style="text-align: center; margin-bottom: 40px;">
+    <h2 style="color: #667eea; margin-bottom: 15px;">Система нормалізації адрес та пошуку районних судів</h2>
+    <p style="font-size: 1.1rem; color: #666;">Забезпечте точність адресних даних відповідно до стандартів Укрпошти</p>
+</div>
+
+{% if stats %}
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ stats.total_courts }}</h3>
+        <p>Судів у базі</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.courts_by_oblast|length }}</h3>
+        <p>Областей України</p>
+    </div>
+    <div class="stat-card">
+        <h3>100%</h3>
+        <p>Точність нормалізації</p>
+    </div>
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-top: 40px;">
+    <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 30px; text-align: center; transition: all 0.3s;">
+        <div style="font-size: 3rem; margin-bottom: 15px;">📍</div>
+        <h3 style="color: #667eea; margin-bottom: 15px;">Одиночна адреса</h3>
+        <p style="margin-bottom: 20px; color: #666;">Нормалізуйте та знайдіть суд для однієї адреси</p>
+        <a href="/single" class="btn">Перейти</a>
+    </div>
+
+    <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 30px; text-align: center; transition: all 0.3s;">
+        <div style="font-size: 3rem; margin-bottom: 15px;">📊</div>
+        <h3 style="color: #667eea; margin-bottom: 15px;">Пакетна обробка</h3>
+        <p style="margin-bottom: 20px; color: #666;">Обробіть великі обсяги адрес з файлів CSV або Excel</p>
+        <a href="/batch" class="btn">Перейти</a>
+    </div>
+
+    <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 30px; text-align: center; transition: all 0.3s;">
+        <div style="font-size: 3rem; margin-bottom: 15px;">🏛️</div>
+        <h3 style="color: #667eea; margin-bottom: 15px;">База судів</h3>
+        <p style="margin-bottom: 20px; color: #666;">Перегляньте повну базу районних судів України</p>
+        <a href="/courts" class="btn">Перейти</a>
+    </div>
+</div>
+
+<div class="alert alert-info" style="margin-top: 40px;">
+    <h4 style="margin-bottom: 10px;">Що робить система?</h4>
+    <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>Нормалізує адреси відповідно до вимог Укрпошти</li>
+        <li>Визначає правильні скорочення та формати</li>
+        <li>Автоматично знаходить підсудний районний суд</li>
+        <li>Підтримує пакетну обробку великих обсягів даних</li>
+        <li>Експортує результати у CSV та Excel форматах</li>
+    </ul>
+</div>
 {% endblock %}

@@ -1,4 +1,93 @@
 {% extends 'base.html' %}
+{% block title %}Результат обробки{% endblock %}
+
 {% block content %}
-<p>{{ result }}</p>
+<h2 style="color: #667eea; margin-bottom: 30px;">Результат обробки адреси</h2>
+
+{% if result.status == 'error' %}
+<div class="alert alert-error">
+    <strong>Помилка:</strong> {{ result.error }}
+</div>
+{% elif result.status == 'warning' %}
+<div class="alert alert-warning">
+    <strong>Увага:</strong> {{ result.error }}
+</div>
+{% else %}
+<div class="alert alert-success">
+    <strong>Успішно!</strong> Адресу оброблено та суд знайдено.
+</div>
+{% endif %}
+
+<div style="background: #f8f9fa; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
+    <h3 style="color: #667eea; margin-bottom: 20px;">Адреса</h3>
+
+    <div style="margin-bottom: 15px;">
+        <strong>Оригінальна адреса:</strong>
+        <p style="margin: 5px 0; color: #666;">{{ result.original_address }}</p>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <strong>Нормалізована адреса:</strong>
+        <p style="margin: 5px 0; color: #28a745; font-weight: 500;">{{ result.normalized_address }}</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+        {% if result.oblast %}
+        <div><strong>Область:</strong><br>{{ result.oblast }}</div>
+        {% endif %}
+        {% if result.district %}
+        <div><strong>Район:</strong><br>{{ result.district }}</div>
+        {% endif %}
+        {% if result.city %}
+        <div><strong>Місто:</strong><br>{{ result.city }}</div>
+        {% endif %}
+        {% if result.street %}
+        <div><strong>Вулиця:</strong><br>{{ result.street }}</div>
+        {% endif %}
+        {% if result.house %}
+        <div><strong>Будинок:</strong><br>{{ result.house }}</div>
+        {% endif %}
+        {% if result.apartment %}
+        <div><strong>Квартира:</strong><br>{{ result.apartment }}</div>
+        {% endif %}
+    </div>
+</div>
+
+{% if result.court_name %}
+<div style="background: #e7f3ff; padding: 25px; border-radius: 10px; border-left: 4px solid #667eea;">
+    <h3 style="color: #667eea; margin-bottom: 20px;">Районний суд</h3>
+
+    <div style="margin-bottom: 15px;">
+        <strong>Назва суду:</strong>
+        <p style="margin: 5px 0; font-size: 1.1rem;">{{ result.court_name }}</p>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <strong>Адреса суду:</strong>
+        <p style="margin: 5px 0;">{{ result.court_address }}</p>
+    </div>
+
+    {% if result.court_phone %}
+    <div style="margin-bottom: 15px;">
+        <strong>Телефон:</strong>
+        <p style="margin: 5px 0;">{{ result.court_phone }}</p>
+    </div>
+    {% endif %}
+
+    {% if result.match_score %}
+    <div style="margin-top: 20px;">
+        <strong>Точність співпадіння:</strong>
+        <div style="background: #ddd; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 5px;">
+            <div style="background: #28a745; height: 100%; width: {{ result.match_score }}%;"></div>
+        </div>
+        <p style="margin-top: 5px; font-size: 0.9rem; color: #666;">{{ result.match_score|round(1) }}%</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div style="margin-top: 30px;">
+    <a href="/single" class="btn">Обробити іншу адресу</a>
+    <a href="/" class="btn btn-secondary" style="margin-left: 10px;">На головну</a>
+</div>
 {% endblock %}

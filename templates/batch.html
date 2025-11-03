@@ -1,8 +1,60 @@
 {% extends 'base.html' %}
+{% block title %}Пакетна обробка{% endblock %}
+
 {% block content %}
+<h2 style="color: #667eea; margin-bottom: 30px;">Пакетна обробка адрес</h2>
+
+{% if error %}
+<div class="alert alert-error">
+    <strong>Помилка:</strong> {{ error }}
+</div>
+{% endif %}
+
+<div class="alert alert-info" style="margin-bottom: 30px;">
+    <h4 style="margin-bottom: 10px;">Формат файлу</h4>
+    <p>Підтримуються файли CSV та Excel (XLSX, XLS)</p>
+    <p style="margin-top: 10px;"><strong>Колонки файлу можуть бути:</strong></p>
+    <ul style="margin-left: 20px; margin-top: 5px;">
+        <li><code>address</code> - повна адреса в одному полі</li>
+        <li>АБО окремі поля: <code>oblast</code>, <code>district</code>, <code>city</code>, <code>street</code>, <code>house</code>, <code>apartment</code>, <code>postal_code</code></li>
+    </ul>
+</div>
+
 <form method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".csv" required><br>
-    <label><input type="checkbox" name="normalise"> Normalise addresses</label><br>
-    <button type="submit">Upload</button>
+    <div class="form-group">
+        <label>Виберіть файл для обробки:</label>
+        <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+        <small style="display: block; margin-top: 8px; color: #666;">
+            Максимальний розмір файлу: 16 МБ
+        </small>
+    </div>
+
+    <div class="form-group">
+        <label class="checkbox-label">
+            <input type="checkbox" name="normalize" checked>
+            <span>Нормалізувати адреси відповідно до стандартів Укрпошти</span>
+        </label>
+    </div>
+
+    <button type="submit" class="btn">Завантажити та обробити</button>
+    <a href="/" class="btn btn-secondary" style="margin-left: 10px;">Назад</a>
 </form>
+
+<div style="margin-top: 40px; padding: 25px; background: #f8f9fa; border-radius: 10px;">
+    <h4 style="color: #667eea; margin-bottom: 15px;">Приклад CSV файлу:</h4>
+    <pre style="background: white; padding: 15px; border-radius: 5px; overflow-x: auto;">address
+"01001, Київська область, м. Київ, Печерський район, вул. Хрещатик, 1"
+"79000, Львівська область, м. Львів, Шевченківський район, вул. Винниченка, 24"
+"49000, Дніпропетровська область, м. Дніпро, Центральний район, вул. Воскресенська, 17"</pre>
+
+    <h4 style="color: #667eea; margin-bottom: 15px; margin-top: 25px;">Приклад з окремими полями:</h4>
+    <pre style="background: white; padding: 15px; border-radius: 5px; overflow-x: auto;">oblast,district,city,street,house
+"Київська область","Шевченківський район","м. Київ","вул. Дегтярівська","31-А"
+"Львівська область","Франківський район","м. Львів","вул. Наукова","4"</pre>
+</div>
+
+<div style="margin-top: 20px;">
+    <a href="/examples/sample.csv" class="btn btn-secondary" download>Завантажити приклад CSV</a>
+    <a href="/examples/sample.xlsx" class="btn btn-secondary" style="margin-left: 10px;" download>Завантажити приклад XLSX</a>
+</div>
 {% endblock %}

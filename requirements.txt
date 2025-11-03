@@ -1,2 +1,6 @@
 flask
-dbf
+requests
+openpyxl
+pandas
+fuzzywuzzy
+python-Levenshtein
