@@ -1,10 +1,47 @@
 {% extends 'base.html' %}
 {% block content %}
-<form method="post">
-    <label>Oblast: <input type="text" name="oblast"></label><br>
-    <label>District: <input type="text" name="district"></label><br>
-    <label>Settlement: <input type="text" name="settlement"></label><br>
-    <label><input type="checkbox" name="normalise"> Normalise address</label><br>
-    <button type="submit">Search</button>
+<h2>Пошук підсудності місцевих судів України</h2>
+
+{% if not db_exists %}
+<div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+    <p><strong>Увага!</strong> База даних ще не створена.</p>
+    <p>Будь ласка, спочатку запустіть скрипт імпорту даних:</p>
+    <pre>python scripts/import_data.py</pre>
+</div>
+{% endif %}
+
+<form method="post" style="max-width: 500px;">
+    <div style="margin-bottom: 15px;">
+        <label for="oblast"><strong>Область:</strong></label><br>
+        <input type="text" id="oblast" name="oblast" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="наприклад: Київська область">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="district"><strong>Район:</strong></label><br>
+        <input type="text" id="district" name="district" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="наприклад: Броварський район">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="settlement"><strong>Населений пункт:</strong></label><br>
+        <input type="text" id="settlement" name="settlement" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="наприклад: Бровари">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label>
+            <input type="checkbox" name="normalise"> Нормалізувати адресу (автоматичне виправлення регістру)
+        </label>
+    </div>
+
+    <button type="submit" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Знайти суд
+    </button>
 </form>
+
+<div style="margin-top: 30px; padding: 15px; background: #e3f2fd; border-radius: 5px;">
+    <h3>Додаткові можливості:</h3>
+    <ul>
+        <li><a href="/batch">Пакетна обробка файлів</a> - завантажте CSV файл з адресами</li>
+        <li><a href="/normalize">Нормалізація адрес</a> - нормалізуйте CSV файл з адресами</li>
+    </ul>
+</div>
 {% endblock %}

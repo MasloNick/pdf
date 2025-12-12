@@ -1,4 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
-<p>{{ result }}</p>
+<h2>Результат пошуку підсудності</h2>
+
+{% if search_params %}
+<div style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
+    <strong>Параметри пошуку:</strong><br>
+    {% if search_params.oblast %}<strong>Область:</strong> {{ search_params.oblast }}<br>{% endif %}
+    {% if search_params.district %}<strong>Район:</strong> {{ search_params.district }}<br>{% endif %}
+    {% if search_params.settlement %}<strong>Населений пункт:</strong> {{ search_params.settlement }}<br>{% endif %}
+</div>
+{% endif %}
+
+{% if result %}
+<div style="background: #e8f5e9; padding: 15px; border-left: 4px solid #4caf50; margin-bottom: 20px;">
+    <h3>{{ result.name }}</h3>
+    {% if result.full_name %}<p><strong>Повна назва:</strong> {{ result.full_name }}</p>{% endif %}
+    {% if result.type %}<p><strong>Тип суду:</strong> {{ result.type }}</p>{% endif %}
+    {% if result.address %}<p><strong>Адреса:</strong> {{ result.address }}</p>{% endif %}
+    {% if result.phone %}<p><strong>Телефон:</strong> {{ result.phone }}</p>{% endif %}
+    {% if result.email %}<p><strong>Email:</strong> <a href="mailto:{{ result.email }}">{{ result.email }}</a></p>{% endif %}
+    {% if result.website %}<p><strong>Веб-сайт:</strong> <a href="http://{{ result.website }}" target="_blank">{{ result.website }}</a></p>{% endif %}
+</div>
+{% else %}
+<div style="background: #ffebee; padding: 15px; border-left: 4px solid #f44336; margin-bottom: 20px;">
+    <p><strong>Суд не знайдено</strong></p>
+    <p>За вказаною адресою не вдалося знайти відповідний суд. Спробуйте уточнити параметри пошуку.</p>
+</div>
+{% endif %}
+
+<p><a href="/">← Повернутися до пошуку</a></p>
 {% endblock %}
