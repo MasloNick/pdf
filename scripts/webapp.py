@@ -12,10 +12,16 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from datetime import datetime
 
 # Імпорт власних модулів
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from address_normalizer import AddressNormalizer
 from court_finder import CourtFinder
 
-app = Flask(__name__)
+# Визначення шляхів до директорій проекту
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB максимум
 
 # Ініціалізація модулів
