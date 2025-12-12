@@ -206,6 +206,93 @@ def import_courts(conn):
     print(f"Імпортовано {count} судів")
 
 
+def import_courts_official_registry(conn):
+    """Імпортує офіційні дані судів з реєстру (ЄДРПОУ, IBAN, банківські реквізити)"""
+    if not (DATA_DIR / 'courts_official_registry.csv').exists():
+        print("Файл з офіційним реєстром судів не знайдено, пропускаємо...")
+        return
+
+    print("Імпорт офіційних даних судів з реєстру...")
+    cursor = conn.cursor()
+    updated_count = 0
+    inserted_count = 0
+
+    with open(DATA_DIR / 'courts_official_registry.csv', 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Перевірити чи існує суд
+            court_result = cursor.execute(
+                "SELECT id FROM courts WHERE name = ?",
+                (row['name'],)
+            ).fetchone()
+
+            if court_result:
+                # Оновити існуючий суд
+                cursor.execute(
+                    """UPDATE courts SET
+                       ati_code = ?,
+                       edrpou = ?,
+                       address = ?,
+                       email = ?,
+                       iban = ?,
+                       bank_name = ?,
+                       mfo = ?,
+                       name_genitive = ?
+                       WHERE id = ?""",
+                    (row['ati_code'], row['edrpou'], row['address'], row['email'],
+                     row['iban'], row['bank_name'], row['mfo'], row['name_genitive'],
+                     court_result[0])
+                )
+                updated_count += 1
+            else:
+                # Вставити новий суд
+                cursor.execute(
+                    """INSERT INTO courts (name, full_name, type, address, email,
+                       ati_code, edrpou, iban, bank_name, mfo, name_genitive)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (row['name'], row['name'], 'районний', row['address'], row['email'],
+                     row['ati_code'], row['edrpou'], row['iban'], row['bank_name'],
+                     row['mfo'], row['name_genitive'])
+                )
+                inserted_count += 1
+
+                # Додати юрисдикцію на основі даних з реєстру
+                court_id = cursor.lastrowid
+
+                # Знайти область, район і місто
+                oblast_id = cursor.execute(
+                    "SELECT id FROM oblasts WHERE name LIKE ?",
+                    (f"{row['oblast']}%",)
+                ).fetchone()
+
+                if oblast_id:
+                    raion_id = None
+                    if row.get('raion'):
+                        raion_id = cursor.execute(
+                            "SELECT id FROM raions WHERE name LIKE ? AND oblast_id = ?",
+                            (f"{row['raion']}%", oblast_id[0])
+                        ).fetchone()
+                        raion_id = raion_id[0] if raion_id else None
+
+                    settlement_id = None
+                    if row.get('settlement'):
+                        settlement_id = cursor.execute(
+                            "SELECT id FROM settlements WHERE name = ? AND oblast_id = ?",
+                            (row['settlement'], oblast_id[0])
+                        ).fetchone()
+                        settlement_id = settlement_id[0] if settlement_id else None
+
+                    cursor.execute(
+                        """INSERT INTO jurisdiction (court_id, oblast_id, raion_id, settlement_id, notes)
+                           VALUES (?, ?, ?, ?, ?)""",
+                        (court_id, oblast_id[0], raion_id, settlement_id,
+                         f"Імпортовано з офіційного реєстру (ATI: {row['ati_code']})")
+                    )
+
+    conn.commit()
+    print(f"Оновлено {updated_count} судів, додано {inserted_count} нових судів з офіційного реєстру")
+
+
 def import_displaced_courts(conn):
     """Імпортує дані про тимчасово переміщені суди"""
     if not (DATA_DIR / 'displaced_courts.csv').exists():
@@ -353,6 +440,7 @@ def main():
         import_settlements(conn)
         import_settlement_aliases(conn)
         import_courts(conn)
+        import_courts_official_registry(conn)  # Додано: офіційний реєстр
         import_displaced_courts(conn)
         import_jurisdiction(conn)
 

@@ -92,3 +92,37 @@ SELECT
 FROM settlements s
 LEFT JOIN settlement_aliases sa ON s.id = sa.settlement_id
 GROUP BY s.id;
+
+-- Розширення таблиці courts для офіційних реквізитів
+-- Додаємо поля з офіційного реєстру судів України
+-- ATI код (ідентифікатор адміністративно-територіальної одиниці)
+-- ЄДРПОУ (код в Єдиному державному реєстрі підприємств)
+-- Банківські реквізити (IBAN, назва банку, МФО)
+-- Назва суду в родовому відмінку (для документів)
+
+-- Перевіряємо чи колонки вже існують перед додаванням
+-- SQLite не підтримує IF NOT EXISTS для ALTER TABLE, тому використовуємо окремі команди
+
+-- Додаємо колонку для ATI коду
+ALTER TABLE courts ADD COLUMN ati_code TEXT;
+
+-- Додаємо колонку для ЄДРПОУ
+ALTER TABLE courts ADD COLUMN edrpou TEXT;
+
+-- Додаємо колонку для IBAN
+ALTER TABLE courts ADD COLUMN iban TEXT;
+
+-- Додаємо колонку для назви банку
+ALTER TABLE courts ADD COLUMN bank_name TEXT;
+
+-- Додаємо колонку для МФО банку
+ALTER TABLE courts ADD COLUMN mfo TEXT;
+
+-- Додаємо колонку для назви суду в родовому відмінку
+ALTER TABLE courts ADD COLUMN name_genitive TEXT;
+
+-- Індекс для швидкого пошуку по ЄДРПОУ
+CREATE INDEX IF NOT EXISTS idx_courts_edrpou ON courts(edrpou);
+
+-- Індекс для швидкого пошуку по ATI коду
+CREATE INDEX IF NOT EXISTS idx_courts_ati ON courts(ati_code);
