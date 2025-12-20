@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Офіційні джерела</h2>
+<p>
+    Цей розділ збирає посилання на рішення про дерусифікацію,
+    декомунізацію та інші топонімічні зміни на основі відкритих даних
+    з офіційних сайтів органів влади. Завантажити результати можна у
+    форматі <a href="{{ url_for('official_sources', download='csv') }}">CSV</a>
+    або <a href="{{ url_for('official_sources', download='json') }}">JSON</a>.
+</p>
+
+{% if errors %}
+<div style="border:1px solid #cc0000; padding: 0.5rem; background: #ffe6e6;">
+    <strong>Попередження:</strong>
+    <ul>
+        {% for error in errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<h3>Знайдені рішення</h3>
+{% if registry %}
+    {% for category, items in registry.items() %}
+        <h4>{{ category|capitalize }} ({{ items|length }})</h4>
+        {% if items %}
+        <ul>
+            {% for item in items %}
+            <li>
+                <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+                &mdash; {{ item.admin_unit }} ({{ item.source }})
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>Поки що нічого не знайдено.</p>
+        {% endif %}
+    {% endfor %}
+{% else %}
+<p>Поки що нічого не знайдено.</p>
+{% endif %}
+
+<h3>Список джерел</h3>
+<ul>
+    {% for source in sources %}
+    <li><a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.name }}</a> &mdash; {{ source.admin_unit }}</li>
+    {% endfor %}
+</ul>
+
+<h3>Адміністративна ієрархія</h3>
+{% macro render_unit(unit) %}
+    <li>
+        <strong>{{ unit.name }}</strong>
+        {% if unit.type %}
+            &mdash; {{ unit.type }}
+        {% endif %}
+        {% if unit.website %}
+            (<a href="{{ unit.website }}" target="_blank" rel="noopener">{{ unit.website }}</a>)
+        {% endif %}
+        {% if unit.communities %}
+        <ul>
+            {% for community in unit.communities %}
+            <li>
+                {{ community.name }}
+                {% if community.website %}
+                    (<a href="{{ community.website }}" target="_blank" rel="noopener">{{ community.website }}</a>)
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if unit.children %}
+        <ul>
+            {% for child in unit.children %}
+                {{ render_unit(child) }}
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </li>
+{% endmacro %}
+
+<ul>
+    {{ render_unit(hierarchy) }}
+</ul>
+
+{% endblock %}
