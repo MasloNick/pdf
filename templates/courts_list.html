@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}База судів України{% endblock %}
+
+{% block content %}
+<h2 style="color: #667eea; margin-bottom: 30px;">База районних судів України</h2>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ stats.total_courts }}</h3>
+        <p>Всього судів</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.courts_by_oblast|length }}</h3>
+        <p>Областей</p>
+    </div>
+</div>
+
+<div style="margin: 30px 0;">
+    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Пошук по назві або області..." style="width: 100%; padding: 12px;">
+</div>
+
+<table id="courtsTable">
+    <thead>
+        <tr>
+            <th>Назва суду</th>
+            <th>Область/Місто</th>
+            <th>Тип</th>
+            <th>Адреса</th>
+            <th>Телефон</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for court in courts %}
+        <tr>
+            <td><strong>{{ court.name }}</strong></td>
+            <td>{{ court.oblast }}, {{ court.city }}</td>
+            <td>{{ court.type }}</td>
+            <td>{{ court.address }}</td>
+            <td>{{ court.phone }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+function filterTable() {
+    const input = document.getElementById('searchInput');
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById('courtsTable');
+    const tr = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < tr.length; i++) {
+        const td = tr[i].getElementsByTagName('td');
+        let found = false;
+        for (let j = 0; j < td.length; j++) {
+            if (td[j]) {
+                const txtValue = td[j].textContent || td[j].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        tr[i].style.display = found ? '' : 'none';
+    }
+}
+</script>
+{% endblock %}

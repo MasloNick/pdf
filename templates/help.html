@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Допомога{% endblock %}
+
+{% block content %}
+<h2 style="color: #667eea; margin-bottom: 30px;">Допомога</h2>
+
+<div class="alert alert-info">
+    <h4>Як використовувати систему</h4>
+    <p>Ця система допомагає нормалізувати українські адреси та знаходити підсудні районні суди.</p>
+</div>
+
+<h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px;">1. Одиночна адреса</h3>
+<p>Введіть адресу в довільному форматі, система автоматично:</p>
+<ul style="margin-left: 20px; margin-top: 10px;">
+    <li>Розпізнає компоненти адреси</li>
+    <li>Нормалізує відповідно до стандартів Укрпошти</li>
+    <li>Знайде підсудний районний суд</li>
+</ul>
+
+<h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px;">2. Пакетна обробка</h3>
+<p>Завантажте CSV або Excel файл з адресами. Формати файлів:</p>
+
+<h4 style="margin-top: 20px;">Формат 1: Повна адреса в одному полі</h4>
+<pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">address
+"01001, Київська область, м. Київ, Печерський район, вул. Хрещатик, 1"
+"79000, Львівська область, м. Львів, вул. Винниченка, 24"</pre>
+
+<h4 style="margin-top: 20px;">Формат 2: Окремі поля</h4>
+<pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;">oblast,district,city,street,house,apartment,postal_code
+"Київська область","Шевченківський район","м. Київ","вул. Дегтярівська","31-А",,01032</pre>
+
+<h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px;">3. Експорт результатів</h3>
+<p>Після обробки ви можете експортувати результати у:</p>
+<ul style="margin-left: 20px; margin-top: 10px;">
+    <li>CSV формат - для подальшої обробки</li>
+    <li>Excel (XLSX) - з форматуванням та кольоровим кодуванням</li>
+</ul>
+
+<h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px;">4. База судів</h3>
+<p>Перегляньте повну базу районних судів України з можливістю пошуку за назвою або областю.</p>
+
+<h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px;">API</h3>
+<p>Система також надає API endpoints:</p>
+<ul style="margin-left: 20px; margin-top: 10px;">
+    <li><code>POST /api/normalize</code> - нормалізація адреси</li>
+    <li><code>POST /api/find_court</code> - пошук суду за адресою</li>
+</ul>
+
+<div style="margin-top: 40px; padding: 25px; background: #f8f9fa; border-radius: 10px;">
+    <h4 style="color: #667eea; margin-bottom: 15px;">Технічні вимоги</h4>
+    <ul style="margin-left: 20px;">
+        <li>Максимальний розмір файлу: 16 МБ</li>
+        <li>Підтримувані формати: CSV, XLSX, XLS</li>
+        <li>Кодування CSV: UTF-8 (рекомендовано)</li>
+    </ul>
+</div>
+
+<div style="margin-top: 30px; text-align: center;">
+    <a href="/" class="btn">Повернутися на головну</a>
+</div>
+{% endblock %}
