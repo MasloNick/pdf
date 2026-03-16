@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: courtcrm
+      POSTGRES_PASSWORD: courtcrm
+      POSTGRES_DB: courtcrm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ../backend/.env
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  celery-worker:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ../backend/.env
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4
+
+  celery-beat:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - ../backend/.env
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:
