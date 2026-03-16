@@ -24,3 +24,19 @@ venv/
 
 # macOS
 .DS_Store
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+
+# Data & exports
+data/
+exports/
+backups/
+
+# Database files
+*.sqlite
+*.db
