@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Редагування' if case else 'Нова справа' }} — CourtNinja{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>{{ '&#x270F; Редагування справи' if case else '&#x2795; Нова справа' }}</h2>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Номер справи *</label>
+                <input type="text" name="case_number" value="{{ case.case_number if case else '' }}" placeholder="752/1234/24" required>
+            </div>
+            <div class="form-group">
+                <label>Назва справи *</label>
+                <input type="text" name="title" value="{{ case.title if case else '' }}" placeholder="Коротка назва..." required>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Тип справи</label>
+                <select name="case_type">
+                    {% for key, label in case_types.items() %}
+                    <option value="{{ key }}" {% if case and case.case_type == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Суд</label>
+                <select name="court_id">
+                    {% for court in courts %}
+                    <option value="{{ court.id }}" {% if case and case.court_id == court.id %}selected{% endif %}>{{ court.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% if case %}
+        <div class="form-row">
+            <div class="form-group">
+                <label>Статус</label>
+                <select name="status">
+                    {% for key, label in statuses.items() %}
+                    <option value="{{ key }}" {% if case.status == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Суддя</label>
+                <input type="text" name="judge" value="{{ case.judge if case else '' }}" placeholder="ПІБ судді">
+            </div>
+            <div class="form-group">
+                <label>Наступне засідання</label>
+                <input type="date" name="next_hearing" value="{{ case.next_hearing if case else '' }}">
+            </div>
+        </div>
+        {% else %}
+        <div class="form-group">
+            <label>Суддя</label>
+            <input type="text" name="judge" placeholder="ПІБ судді">
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label>Опис</label>
+            <textarea name="description" placeholder="Детальний опис справи...">{{ case.description if case else '' }}</textarea>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary">{{ 'Зберегти' if case else 'Створити справу' }}</button>
+            <a href="/cases" class="btn btn-secondary">Скасувати</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

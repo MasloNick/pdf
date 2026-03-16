@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Справи — CourtNinja{% endblock %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h2>&#x1F4CB; Управління справами</h2>
+        <p>CRM-система для судових справ</p>
+    </div>
+    <a href="/cases/new" class="btn btn-primary">+ Нова справа</a>
+</div>
+
+<!-- Filters -->
+<div class="card">
+    <form method="get" action="/cases">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Пошук</label>
+                <input type="text" name="q" value="{{ query }}" placeholder="Номер справи, назва...">
+            </div>
+            <div class="form-group">
+                <label>Статус</label>
+                <select name="status">
+                    <option value="">— Всі —</option>
+                    {% for key, label in statuses.items() %}
+                    <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Тип</label>
+                <select name="case_type">
+                    <option value="">— Всі —</option>
+                    {% for key, label in case_types.items() %}
+                    <option value="{{ key }}" {% if key == selected_type %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-secondary">Фільтрувати</button>
+    </form>
+</div>
+
+{% if cases %}
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Номер справи</th>
+                <th>Назва</th>
+                <th>Тип</th>
+                <th>Суд</th>
+                <th>Статус</th>
+                <th>Оновлено</th>
+                <th>Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for case in cases %}
+            <tr>
+                <td><strong>{{ case.case_number }}</strong></td>
+                <td>
+                    <a href="/cases/{{ case.id }}" style="color: var(--accent); text-decoration: none;">
+                        {{ case.title }}
+                    </a>
+                </td>
+                <td>{{ case_types.get(case.case_type, case.case_type) }}</td>
+                <td style="font-size: 0.85rem;">{{ case.court_name }}</td>
+                <td>
+                    <span class="badge badge-{{ case.status }}">{{ statuses.get(case.status, case.status) }}</span>
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-secondary);">
+                    {{ case.updated_at[:10] if case.updated_at else '' }}
+                </td>
+                <td>
+                    <a href="/cases/{{ case.id }}" class="btn btn-secondary btn-sm">&#x1F441;</a>
+                    <a href="/cases/{{ case.id }}/edit" class="btn btn-secondary btn-sm">&#x270F;</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">&#x1F4CB;</div>
+    <h3>Ще немає справ</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Створіть першу справу для початку роботи</p>
+    <a href="/cases/new" class="btn btn-primary">+ Створити справу</a>
+</div>
+{% endif %}
+{% endblock %}

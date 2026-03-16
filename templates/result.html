@@ -1,4 +1,12 @@
 {% extends 'base.html' %}
+{% block title %}Результат пошуку — CourtNinja{% endblock %}
 {% block content %}
-<p>{{ result }}</p>
+<div class="page-header">
+    <h2>&#x1F50E; Результат пошуку</h2>
+</div>
+
+<div class="card">
+    <p style="font-size: 1.2rem;">{{ result }}</p>
+    <a href="/" class="btn btn-secondary" style="margin-top: 1rem;">&#x2190; Назад</a>
+</div>
 {% endblock %}

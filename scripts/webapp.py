@@ -1,4 +1,11 @@
-from flask import Flask, request, render_template, send_file, redirect, url_for
+"""CourtNinja — Судовий Ніндзя v2.0
+
+Professional CRM web application for working with Ukrainian courts.
+Features: court search, case management, fee calculator, document generator,
+deadline tracker, official sources collector.
+"""
+
+from flask import Flask, request, render_template, send_file, redirect, url_for, flash
 import csv
 import io
 from pathlib import Path
@@ -12,6 +19,7 @@ if __package__ in (None, ""):
     sys.path.append(str(ROOT_DIR))
 
 app = Flask(__name__, template_folder=str(ROOT_DIR / "templates"))
+app.secret_key = "court-ninja-secret-key-change-in-production"
 
 from scripts.collect_official_sources import (  # noqa: E402,E401
     ADMINISTRATIVE_HIERARCHY,
@@ -19,6 +27,26 @@ from scripts.collect_official_sources import (  # noqa: E402,E401
     DecisionRegistry,
     OfficialSourceCollector,
 )
+from scripts.court_database import CourtDatabase, COURT_TYPES  # noqa: E402
+from scripts.case_manager import CaseManager, CASE_TYPES, CASE_STATUSES  # noqa: E402
+from scripts.fee_calculator import (  # noqa: E402
+    calculate_fee,
+    get_fee_options,
+    FEE_CATEGORIES,
+    PROCEDURAL_DEADLINES,
+)
+from scripts.document_generator import (  # noqa: E402
+    DOCUMENT_TYPES,
+    generate_claim,
+    generate_response,
+    generate_appeal,
+    generate_motion,
+    generate_court_order_application,
+)
+
+# Initialize services
+court_db = CourtDatabase()
+case_mgr = CaseManager()
 
 
 def normalize(text: str) -> str:
@@ -33,8 +61,13 @@ def resolve_code(oblast: str, district: str, settlement: str) -> str:
 
 
 def find_court(code: str) -> str:
-    """Dummy lookup of court by code."""
-    return f"Court for {code}"
+    """Lookup court by code using the database."""
+    parts = code.split("-")
+    settlement = parts[-1] if parts else code
+    results = court_db.find_by_settlement(settlement)
+    if results:
+        return results[0].name
+    return f"Суд для {code} (потрібно уточнити)"
 
 
 def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Dict[str, str]]:
@@ -59,6 +92,10 @@ def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Di
     return processed
 
 
+# ============================================================
+# Dashboard
+# ============================================================
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -73,8 +110,342 @@ def index():
         code = resolve_code(oblast, district, settlement)
         court = find_court(code)
         return render_template("result.html", result=court)
-    return render_template("index.html")
 
+    upcoming = case_mgr.get_upcoming_deadlines(days=14)
+    overdue = [d for d in upcoming if d.get("is_overdue")]
+    stats = case_mgr.stats()
+
+    return render_template(
+        "index.html",
+        court_count=len(court_db.courts),
+        case_count=stats.get("total", 0),
+        deadline_count=len(upcoming),
+        overdue_count=len(overdue),
+        upcoming_deadlines=upcoming,
+    )
+
+
+# ============================================================
+# Courts
+# ============================================================
+
+@app.route("/courts")
+def courts():
+    query = request.args.get("q", "")
+    oblast = request.args.get("oblast", "")
+    court_type = request.args.get("court_type", "")
+
+    results = court_db.search(query=query, oblast=oblast, court_type=court_type)
+
+    return render_template(
+        "courts.html",
+        courts=results,
+        query=query,
+        oblast=oblast,
+        selected_type=court_type,
+        oblasts=court_db.get_oblasts(),
+        court_types=COURT_TYPES,
+    )
+
+
+# ============================================================
+# Cases
+# ============================================================
+
+@app.route("/cases")
+def cases():
+    query = request.args.get("q", "")
+    status = request.args.get("status", "")
+    case_type = request.args.get("case_type", "")
+
+    results = case_mgr.list_cases(status=status, case_type=case_type, query=query)
+
+    return render_template(
+        "cases.html",
+        cases=results,
+        query=query,
+        selected_status=status,
+        selected_type=case_type,
+        statuses=CASE_STATUSES,
+        case_types=CASE_TYPES,
+    )
+
+
+@app.route("/cases/new", methods=["GET", "POST"])
+def case_new():
+    if request.method == "POST":
+        court_id = request.form.get("court_id", "")
+        court = court_db.find_by_id(court_id)
+        court_name = court.name if court else "Невідомий суд"
+
+        case = case_mgr.create_case(
+            case_number=request.form.get("case_number", ""),
+            title=request.form.get("title", ""),
+            case_type=request.form.get("case_type", "civil"),
+            court_id=court_id,
+            court_name=court_name,
+            description=request.form.get("description", ""),
+            judge=request.form.get("judge", ""),
+        )
+        flash("Справу створено!", "success")
+        return redirect(url_for("case_detail", case_id=case.id))
+
+    return render_template(
+        "case_form.html",
+        case=None,
+        case_types=CASE_TYPES,
+        statuses=CASE_STATUSES,
+        courts=court_db.courts,
+    )
+
+
+@app.route("/cases/<case_id>")
+def case_detail(case_id):
+    case = case_mgr.get_case(case_id)
+    if not case:
+        flash("Справу не знайдено", "danger")
+        return redirect(url_for("cases"))
+
+    return render_template(
+        "case_detail.html",
+        case=case,
+        case_types=CASE_TYPES,
+        statuses=CASE_STATUSES,
+    )
+
+
+@app.route("/cases/<case_id>/edit", methods=["GET", "POST"])
+def case_edit(case_id):
+    case = case_mgr.get_case(case_id)
+    if not case:
+        flash("Справу не знайдено", "danger")
+        return redirect(url_for("cases"))
+
+    if request.method == "POST":
+        court_id = request.form.get("court_id", case.court_id)
+        court = court_db.find_by_id(court_id)
+        court_name = court.name if court else case.court_name
+
+        case_mgr.update_case(
+            case_id,
+            case_number=request.form.get("case_number", case.case_number),
+            title=request.form.get("title", case.title),
+            case_type=request.form.get("case_type", case.case_type),
+            court_id=court_id,
+            court_name=court_name,
+            status=request.form.get("status", case.status),
+            description=request.form.get("description", case.description),
+            judge=request.form.get("judge", case.judge),
+            next_hearing=request.form.get("next_hearing", case.next_hearing),
+        )
+        flash("Справу оновлено!", "success")
+        return redirect(url_for("case_detail", case_id=case_id))
+
+    return render_template(
+        "case_form.html",
+        case=case,
+        case_types=CASE_TYPES,
+        statuses=CASE_STATUSES,
+        courts=court_db.courts,
+    )
+
+
+@app.route("/cases/<case_id>/delete", methods=["POST"])
+def case_delete(case_id):
+    case_mgr.delete_case(case_id)
+    flash("Справу видалено", "success")
+    return redirect(url_for("cases"))
+
+
+@app.route("/cases/<case_id>/party", methods=["POST"])
+def case_add_party(case_id):
+    party = {
+        "name": request.form.get("name", ""),
+        "role": request.form.get("role", ""),
+        "address": request.form.get("address", ""),
+    }
+    case_mgr.add_party(case_id, party)
+    flash("Сторону додано", "success")
+    return redirect(url_for("case_detail", case_id=case_id))
+
+
+@app.route("/cases/<case_id>/deadline", methods=["POST"])
+def case_add_deadline(case_id):
+    case_mgr.add_deadline(
+        case_id,
+        title=request.form.get("title", ""),
+        due_date=request.form.get("due_date", ""),
+        description=request.form.get("description", ""),
+    )
+    flash("Дедлайн додано", "success")
+    return redirect(url_for("case_detail", case_id=case_id))
+
+
+@app.route("/cases/<case_id>/deadline/<deadline_id>/complete", methods=["POST"])
+def case_complete_deadline(case_id, deadline_id):
+    case_mgr.complete_deadline(case_id, deadline_id)
+    flash("Дедлайн завершено", "success")
+    return redirect(url_for("case_detail", case_id=case_id))
+
+
+@app.route("/cases/<case_id>/note", methods=["POST"])
+def case_add_note(case_id):
+    case_mgr.add_note(case_id, text=request.form.get("text", ""))
+    flash("Нотатку додано", "success")
+    return redirect(url_for("case_detail", case_id=case_id))
+
+
+# ============================================================
+# Deadlines
+# ============================================================
+
+@app.route("/deadlines")
+def deadlines():
+    all_deadlines = case_mgr.get_upcoming_deadlines(days=30)
+    overdue = [d for d in all_deadlines if d.get("is_overdue")]
+
+    return render_template(
+        "deadlines.html",
+        deadlines=all_deadlines,
+        overdue_deadlines=overdue,
+    )
+
+
+# ============================================================
+# Fee Calculator
+# ============================================================
+
+@app.route("/calculator", methods=["GET", "POST"])
+def calculator():
+    selected_category = request.form.get("category", request.args.get("category", "civil"))
+    selected_index = 0
+    claim_amount = 0.0
+    result = None
+
+    fee_options = get_fee_options(selected_category)
+
+    if request.method == "POST":
+        try:
+            selected_index = int(request.form.get("fee_index", 0))
+        except (ValueError, TypeError):
+            selected_index = 0
+        try:
+            claim_amount = float(request.form.get("claim_amount", 0))
+        except (ValueError, TypeError):
+            claim_amount = 0.0
+
+        result = calculate_fee(selected_category, selected_index, claim_amount)
+
+    return render_template(
+        "calculator.html",
+        categories=FEE_CATEGORIES,
+        selected_category=selected_category,
+        fee_options=fee_options,
+        selected_index=selected_index,
+        claim_amount=claim_amount,
+        result=result,
+        deadlines=PROCEDURAL_DEADLINES,
+    )
+
+
+# ============================================================
+# Document Generator
+# ============================================================
+
+@app.route("/documents", methods=["GET"])
+def documents():
+    doc_type = request.args.get("type", "")
+    return render_template(
+        "documents.html",
+        doc_types=DOCUMENT_TYPES,
+        doc_type=doc_type,
+        generated_doc=None,
+    )
+
+
+@app.route("/documents/generate", methods=["POST"])
+def documents_generate():
+    doc_type = request.form.get("doc_type", "")
+    generated = ""
+
+    if doc_type == "claim":
+        claim_amount = 0.0
+        try:
+            claim_amount = float(request.form.get("claim_amount", 0))
+        except (ValueError, TypeError):
+            pass
+        generated = generate_claim(
+            court_name=request.form.get("court_name", ""),
+            plaintiff=request.form.get("plaintiff", ""),
+            plaintiff_address=request.form.get("plaintiff_address", ""),
+            defendant=request.form.get("defendant", ""),
+            defendant_address=request.form.get("defendant_address", ""),
+            subject=request.form.get("subject", ""),
+            circumstances=request.form.get("circumstances", ""),
+            legal_basis=request.form.get("legal_basis", ""),
+            claim_amount=claim_amount,
+            demands=request.form.get("demands", ""),
+            attachments=request.form.get("attachments", ""),
+        )
+    elif doc_type == "response":
+        generated = generate_response(
+            court_name=request.form.get("court_name", ""),
+            case_number=request.form.get("case_number", ""),
+            defendant=request.form.get("defendant", ""),
+            defendant_address=request.form.get("defendant_address", ""),
+            plaintiff=request.form.get("plaintiff", ""),
+            objections=request.form.get("objections", ""),
+            legal_basis=request.form.get("legal_basis", ""),
+            demands=request.form.get("demands", ""),
+        )
+    elif doc_type == "appeal":
+        generated = generate_appeal(
+            appeal_court_name=request.form.get("appeal_court_name", ""),
+            first_court_name=request.form.get("first_court_name", ""),
+            case_number=request.form.get("case_number", ""),
+            appellant=request.form.get("appellant", ""),
+            appellant_address=request.form.get("appellant_address", ""),
+            opponent=request.form.get("opponent", ""),
+            decision_date=request.form.get("decision_date", ""),
+            grounds=request.form.get("grounds", ""),
+            demands=request.form.get("demands", ""),
+        )
+    elif doc_type == "motion":
+        generated = generate_motion(
+            court_name=request.form.get("court_name", ""),
+            case_number=request.form.get("case_number", ""),
+            applicant=request.form.get("applicant", ""),
+            motion_type=request.form.get("motion_type", ""),
+            justification=request.form.get("justification", ""),
+            request=request.form.get("request", ""),
+        )
+    elif doc_type == "court_order":
+        amount = 0.0
+        try:
+            amount = float(request.form.get("amount", 0))
+        except (ValueError, TypeError):
+            pass
+        generated = generate_court_order_application(
+            court_name=request.form.get("court_name", ""),
+            applicant=request.form.get("applicant", ""),
+            applicant_address=request.form.get("applicant_address", ""),
+            debtor=request.form.get("debtor", ""),
+            debtor_address=request.form.get("debtor_address", ""),
+            amount=amount,
+            basis=request.form.get("basis", ""),
+        )
+
+    return render_template(
+        "documents.html",
+        doc_types=DOCUMENT_TYPES,
+        doc_type=doc_type,
+        generated_doc=generated,
+    )
+
+
+# ============================================================
+# Batch processing
+# ============================================================
 
 @app.route("/batch", methods=["GET", "POST"])
 def batch():
@@ -90,6 +461,10 @@ def batch():
         return render_template("batch_result.html", rows=processed)
     return render_template("batch.html")
 
+
+# ============================================================
+# Official sources
+# ============================================================
 
 @app.route("/official-sources")
 def official_sources():
@@ -127,6 +502,10 @@ def official_sources():
         sources=OFFICIAL_SOURCES,
     )
 
+
+# ============================================================
+# Normalize
+# ============================================================
 
 @app.route("/normalize", methods=["GET", "POST"])
 def normalize_route():

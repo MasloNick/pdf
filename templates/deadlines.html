@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Дедлайни — CourtNinja{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>&#x23F0; Трекер дедлайнів</h2>
+    <p>Контроль усіх процесуальних строків по всіх справах</p>
+</div>
+
+{% if overdue_deadlines %}
+<div class="alert alert-danger">
+    <strong>&#x26A0; Прострочені дедлайни: {{ overdue_deadlines|length }}</strong>
+</div>
+{% endif %}
+
+{% if deadlines %}
+<div class="card">
+    <h3>Найближчі дедлайни ({{ deadlines|length }})</h3>
+    {% for d in deadlines %}
+    <div class="deadline-item">
+        <div class="deadline-days {% if d.is_overdue %}overdue{% elif d.days_left <= 3 %}urgent{% else %}ok{% endif %}">
+            {% if d.is_overdue %}
+                -{{ d.days_left|abs }}д
+            {% elif d.days_left == 0 %}
+                &#x1F525;
+            {% else %}
+                {{ d.days_left }}д
+            {% endif %}
+        </div>
+        <div style="flex: 1;">
+            <strong>{{ d.title }}</strong>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                {{ d.case_title }} ({{ d.case_number }}) &mdash; {{ d.due_date }}
+            </div>
+            {% if d.get('description') %}
+            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ d.description }}</div>
+            {% endif %}
+        </div>
+        {% if d.is_overdue %}
+        <span class="badge badge-overdue">Прострочено</span>
+        {% elif d.days_left <= 1 %}
+        <span class="badge badge-overdue">Сьогодні/Завтра</span>
+        {% elif d.days_left <= 3 %}
+        <span class="badge badge-urgent">Терміново</span>
+        {% else %}
+        <span class="badge badge-active">{{ d.days_left }} днів</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">&#x2705;</div>
+    <h3>Немає найближчих дедлайнів</h3>
+    <p style="color: var(--text-secondary);">Додайте дедлайни через управління справами</p>
+    <a href="/cases" class="btn btn-primary" style="margin-top: 1rem;">Перейти до справ</a>
+</div>
+{% endif %}
+{% endblock %}

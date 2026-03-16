@@ -1,14 +1,33 @@
 {% extends 'base.html' %}
+{% block title %}Результати обробки — CourtNinja{% endblock %}
 {% block content %}
-<table border="1">
-    <tr><th>Oblast</th><th>District</th><th>Settlement</th><th>Court</th></tr>
-    {% for row in rows %}
-    <tr>
-        <td>{{ row.oblast }}</td>
-        <td>{{ row.district }}</td>
-        <td>{{ row.settlement }}</td>
-        <td>{{ row.court }}</td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="page-header">
+    <h2>&#x1F4CA; Результати пакетної обробки</h2>
+    <p>Знайдено {{ rows|length }} записів</p>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Область</th>
+                <th>Район</th>
+                <th>Населений пункт</th>
+                <th>Суд</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.oblast }}</td>
+                <td>{{ row.district }}</td>
+                <td>{{ row.settlement }}</td>
+                <td>{{ row.court }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<a href="/batch" class="btn btn-secondary">&#x2190; Завантажити інший файл</a>
 {% endblock %}

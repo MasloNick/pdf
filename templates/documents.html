@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% block title %}Генератор документів — CourtNinja{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>&#x1F4DD; Генератор документів</h2>
+    <p>Створення процесуальних документів з шаблонів</p>
+</div>
+
+{% if not doc_type %}
+<!-- Document type selection -->
+<div class="card-grid">
+    {% for key, label in doc_types.items() %}
+    <a href="/documents?type={{ key }}" class="feature-card">
+        <div class="feature-icon">
+            {% if key == 'claim' %}&#x2696;{% elif key == 'response' %}&#x1F4E9;{% elif key == 'appeal' %}&#x1F4E4;{% elif key == 'motion' %}&#x270B;{% elif key == 'court_order' %}&#x1F4DC;{% else %}&#x1F4DD;{% endif %}
+        </div>
+        <h3>{{ label }}</h3>
+    </a>
+    {% endfor %}
+</div>
+
+{% elif doc_type == 'claim' %}
+<!-- Claim form -->
+<div class="card">
+    <h3>&#x2696; Позовна заява</h3>
+    <form method="post" action="/documents/generate">
+        <input type="hidden" name="doc_type" value="claim">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Суд</label>
+                <input type="text" name="court_name" placeholder="Назва суду" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Позивач</label>
+                <input type="text" name="plaintiff" placeholder="ПІБ / Назва" required>
+            </div>
+            <div class="form-group">
+                <label>Адреса позивача</label>
+                <input type="text" name="plaintiff_address" placeholder="Адреса" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Відповідач</label>
+                <input type="text" name="defendant" placeholder="ПІБ / Назва" required>
+            </div>
+            <div class="form-group">
+                <label>Адреса відповідача</label>
+                <input type="text" name="defendant_address" placeholder="Адреса" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Предмет позову</label>
+            <input type="text" name="subject" placeholder="про стягнення заборгованості..." required>
+        </div>
+        <div class="form-group">
+            <label>Ціна позову (грн, 0 якщо немайновий)</label>
+            <input type="number" name="claim_amount" value="0" step="0.01" min="0">
+        </div>
+        <div class="form-group">
+            <label>Обставини справи</label>
+            <textarea name="circumstances" rows="4" placeholder="Опишіть фактичні обставини..." required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Правова підстава</label>
+            <textarea name="legal_basis" rows="3" placeholder="Статті законів, на які посилаєтесь..." required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Позовні вимоги (ПРОШУ:)</label>
+            <textarea name="demands" rows="3" placeholder="Задовольнити позовні вимоги..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Додатки</label>
+            <textarea name="attachments" rows="3" placeholder="1. Копія позовної заяви..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F4DD; Створити документ</button>
+    </form>
+</div>
+
+{% elif doc_type == 'response' %}
+<div class="card">
+    <h3>&#x1F4E9; Відзив на позовну заяву</h3>
+    <form method="post" action="/documents/generate">
+        <input type="hidden" name="doc_type" value="response">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Суд</label>
+                <input type="text" name="court_name" required>
+            </div>
+            <div class="form-group">
+                <label>Номер справи</label>
+                <input type="text" name="case_number" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Відповідач</label>
+                <input type="text" name="defendant" required>
+            </div>
+            <div class="form-group">
+                <label>Адреса відповідача</label>
+                <input type="text" name="defendant_address" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Позивач</label>
+            <input type="text" name="plaintiff" required>
+        </div>
+        <div class="form-group">
+            <label>Заперечення</label>
+            <textarea name="objections" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Правова підстава</label>
+            <textarea name="legal_basis" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Прохальна частина</label>
+            <textarea name="demands" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F4DD; Створити документ</button>
+    </form>
+</div>
+
+{% elif doc_type == 'appeal' %}
+<div class="card">
+    <h3>&#x1F4E4; Апеляційна скарга</h3>
+    <form method="post" action="/documents/generate">
+        <input type="hidden" name="doc_type" value="appeal">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Апеляційний суд</label>
+                <input type="text" name="appeal_court_name" required>
+            </div>
+            <div class="form-group">
+                <label>Суд першої інстанції</label>
+                <input type="text" name="first_court_name" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Номер справи</label>
+            <input type="text" name="case_number" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Апелянт</label>
+                <input type="text" name="appellant" required>
+            </div>
+            <div class="form-group">
+                <label>Адреса апелянта</label>
+                <input type="text" name="appellant_address" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Інша сторона</label>
+                <input type="text" name="opponent" required>
+            </div>
+            <div class="form-group">
+                <label>Дата рішення</label>
+                <input type="text" name="decision_date" placeholder="01.01.2025" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Підстави для скасування</label>
+            <textarea name="grounds" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Прохальна частина</label>
+            <textarea name="demands" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F4DD; Створити документ</button>
+    </form>
+</div>
+
+{% elif doc_type == 'motion' %}
+<div class="card">
+    <h3>&#x270B; Клопотання</h3>
+    <form method="post" action="/documents/generate">
+        <input type="hidden" name="doc_type" value="motion">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Суд</label>
+                <input type="text" name="court_name" required>
+            </div>
+            <div class="form-group">
+                <label>Номер справи</label>
+                <input type="text" name="case_number" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Заявник</label>
+            <input type="text" name="applicant" required>
+        </div>
+        <div class="form-group">
+            <label>Предмет клопотання</label>
+            <input type="text" name="motion_type" placeholder="відкладення розгляду справи..." required>
+        </div>
+        <div class="form-group">
+            <label>Обґрунтування</label>
+            <textarea name="justification" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+            <label>Прохальна частина</label>
+            <textarea name="request" rows="2" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F4DD; Створити документ</button>
+    </form>
+</div>
+
+{% elif doc_type == 'court_order' %}
+<div class="card">
+    <h3>&#x1F4DC; Заява про видачу судового наказу</h3>
+    <form method="post" action="/documents/generate">
+        <input type="hidden" name="doc_type" value="court_order">
+        <div class="form-group">
+            <label>Суд</label>
+            <input type="text" name="court_name" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Заявник</label>
+                <input type="text" name="applicant" required>
+            </div>
+            <div class="form-group">
+                <label>Адреса заявника</label>
+                <input type="text" name="applicant_address" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Боржник</label>
+                <input type="text" name="debtor" required>
+            </div>
+            <div class="form-group">
+                <label>Адреса боржника</label>
+                <input type="text" name="debtor_address" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Сума вимоги (грн)</label>
+            <input type="number" name="amount" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+            <label>Підстава вимоги</label>
+            <textarea name="basis" rows="4" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F4DD; Створити документ</button>
+    </form>
+</div>
+{% endif %}
+
+{% if generated_doc %}
+<div class="card" style="margin-top: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>&#x1F4C4; Згенерований документ</h3>
+        <div class="btn-group">
+            <button onclick="copyDoc()" class="btn btn-secondary btn-sm">&#x1F4CB; Копіювати</button>
+        </div>
+    </div>
+    <div class="doc-preview" id="doc-content">{{ generated_doc }}</div>
+</div>
+<script>
+function copyDoc() {
+    const text = document.getElementById('doc-content').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Документ скопійовано!');
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

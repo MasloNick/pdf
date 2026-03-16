@@ -22,5 +22,8 @@ venv/
 .vscode/
 .idea/
 
+# Data files (user-generated)
+data/*.json
+
 # macOS
 .DS_Store

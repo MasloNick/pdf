@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Калькулятор судового збору — CourtNinja{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>&#x1F4B0; Калькулятор судового збору</h2>
+    <p>Розрахунок збору відповідно до ЗУ «Про судовий збір»</p>
+</div>
+
+<div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="card">
+        <h3>Параметри розрахунку</h3>
+        <form method="post" action="/calculator">
+            <div class="form-group">
+                <label>Категорія судочинства</label>
+                <select name="category" id="category" onchange="this.form.submit()">
+                    {% for key, label in categories.items() %}
+                    <option value="{{ key }}" {% if key == selected_category %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Тип звернення</label>
+                <select name="fee_index">
+                    {% for opt in fee_options %}
+                    <option value="{{ opt.index }}" {% if opt.index == selected_index %}selected{% endif %}>
+                        {{ opt.description }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Сума позову (грн) — для майнових вимог</label>
+                <input type="number" name="claim_amount" value="{{ claim_amount }}" step="0.01" min="0" placeholder="0.00">
+            </div>
+
+            <button type="submit" class="btn btn-primary">&#x1F4B0; Розрахувати</button>
+        </form>
+    </div>
+
+    <div>
+        {% if result %}
+        <div class="fee-result">
+            <div style="color: var(--text-secondary); font-size: 0.9rem;">Судовий збір</div>
+            <div class="fee-amount">{{ result.formatted_amount }}</div>
+            <div class="fee-desc">{{ result.description }}</div>
+            <div style="margin-top: 0.8rem; font-size: 0.85rem; color: var(--text-secondary);">
+                {{ result.basis }}
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Примітки</h3>
+            <ul style="list-style: none; padding: 0;">
+                {% for note in result.notes %}
+                <li style="padding: 0.3rem 0; color: var(--text-secondary); font-size: 0.9rem;">
+                    &#x2022; {{ note }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="card" style="text-align: center; padding: 3rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">&#x1F4B0;</div>
+            <p style="color: var(--text-secondary);">Оберіть параметри та натисніть «Розрахувати»</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Procedural deadlines reference -->
+<div class="card" style="margin-top: 1.5rem;">
+    <h3>&#x1F4C5; Довідник процесуальних строків</h3>
+    <div class="form-row" style="grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));">
+        {% for cat_key, cat_label in categories.items() %}
+        <div>
+            <h4 style="color: var(--accent); margin: 1rem 0 0.5rem;">{{ cat_label }}</h4>
+            <table>
+                {% for dl in deadlines.get(cat_key, []) %}
+                <tr>
+                    <td>{{ dl.name }}</td>
+                    <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                        {% if dl.days %}{{ dl.days }} дн.{% endif %}
+                        {% if dl.note %}<br><em>{{ dl.note }}</em>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

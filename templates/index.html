@@ -1,10 +1,116 @@
 {% extends 'base.html' %}
+{% block title %}CourtNinja — Dashboard{% endblock %}
 {% block content %}
-<form method="post">
-    <label>Oblast: <input type="text" name="oblast"></label><br>
-    <label>District: <input type="text" name="district"></label><br>
-    <label>Settlement: <input type="text" name="settlement"></label><br>
-    <label><input type="checkbox" name="normalise"> Normalise address</label><br>
-    <button type="submit">Search</button>
-</form>
+<div class="page-header">
+    <h2>&#x2694; Судовий Ніндзя — CourtCRM PRO</h2>
+    <p>Професійна CRM-система для роботи з судами України</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ court_count }}</div>
+        <div class="stat-label">Судів у базі</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ case_count }}</div>
+        <div class="stat-label">Справ</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ deadline_count }}</div>
+        <div class="stat-label">Найближчих дедлайнів</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ overdue_count }}</div>
+        <div class="stat-label">Прострочених</div>
+    </div>
+</div>
+
+{% if upcoming_deadlines %}
+<div class="card">
+    <h3>&#9200; Найближчі дедлайни</h3>
+    {% for d in upcoming_deadlines[:5] %}
+    <div class="deadline-item">
+        <div class="deadline-days {% if d.is_overdue %}overdue{% elif d.days_left <= 3 %}urgent{% else %}ok{% endif %}">
+            {% if d.is_overdue %}
+                {{ d.days_left|abs }}д
+            {% elif d.days_left == 0 %}
+                Сьогодні
+            {% else %}
+                {{ d.days_left }}д
+            {% endif %}
+        </div>
+        <div>
+            <strong>{{ d.title }}</strong>
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">
+                {{ d.case_title }} ({{ d.case_number }}) &mdash; {{ d.due_date }}
+            </div>
+        </div>
+        {% if d.is_overdue %}
+        <span class="badge badge-overdue">Прострочено</span>
+        {% elif d.days_left <= 3 %}
+        <span class="badge badge-urgent">Терміново</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card-grid">
+    <a href="/courts" class="feature-card">
+        <div class="feature-icon">&#x1F3DB;</div>
+        <h3>База судів</h3>
+        <p>Пошук судів за адресою, типом, юрисдикцією. Контактні дані, адреси, сайти.</p>
+    </a>
+
+    <a href="/cases" class="feature-card">
+        <div class="feature-icon">&#x1F4CB;</div>
+        <h3>Управління справами</h3>
+        <p>CRM для судових справ. Сторони, дедлайни, документи, нотатки, статуси.</p>
+    </a>
+
+    <a href="/calculator" class="feature-card">
+        <div class="feature-icon">&#x1F4B0;</div>
+        <h3>Калькулятор зборів</h3>
+        <p>Розрахунок судового збору за типом справи та видом звернення.</p>
+    </a>
+
+    <a href="/documents" class="feature-card">
+        <div class="feature-icon">&#x1F4DD;</div>
+        <h3>Генератор документів</h3>
+        <p>Шаблони позовів, відзивів, скарг, клопотань з автозаповненням.</p>
+    </a>
+
+    <a href="/deadlines" class="feature-card">
+        <div class="feature-icon">&#x23F0;</div>
+        <h3>Трекер дедлайнів</h3>
+        <p>Контроль процесуальних строків. Сповіщення про наближення термінів.</p>
+    </a>
+
+    <a href="/official-sources" class="feature-card">
+        <div class="feature-icon">&#x1F4D6;</div>
+        <h3>Офіційні джерела</h3>
+        <p>Дерусифікація, декомунізація, топонімічні зміни — офіційні рішення.</p>
+    </a>
+
+    <a href="/batch" class="feature-card">
+        <div class="feature-icon">&#x1F4E5;</div>
+        <h3>Пакетна обробка</h3>
+        <p>Завантаження CSV з адресами — масовий пошук судів за юрисдикцією.</p>
+    </a>
+
+    <a href="/normalize" class="feature-card">
+        <div class="feature-icon">&#x1F527;</div>
+        <h3>Нормалізація</h3>
+        <p>Очищення та нормалізація адресних даних з CSV файлів.</p>
+    </a>
+</div>
+
+<!-- Quick search -->
+<div class="card" style="margin-top: 1rem;">
+    <h3>&#x1F50E; Швидкий пошук суду</h3>
+    <form method="get" action="/courts" style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <input type="text" name="q" placeholder="Введіть назву міста, району або суду..." style="flex: 1;">
+        <button type="submit" class="btn btn-primary">Знайти</button>
+    </form>
+</div>
 {% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Суди — CourtNinja{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2>&#x1F3DB; База судів України</h2>
+    <p>Знайдіть суд за адресою, типом або назвою</p>
+</div>
+
+<div class="card">
+    <form method="get" action="/courts">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Пошук</label>
+                <input type="text" name="q" value="{{ query }}" placeholder="Назва міста, району, суду...">
+            </div>
+            <div class="form-group">
+                <label>Область</label>
+                <select name="oblast">
+                    <option value="">— Всі області —</option>
+                    {% for o in oblasts %}
+                    <option value="{{ o }}" {% if o == oblast %}selected{% endif %}>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Тип суду</label>
+                <select name="court_type">
+                    <option value="">— Всі типи —</option>
+                    {% for key, label in court_types.items() %}
+                    <option value="{{ key }}" {% if key == selected_type %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F50E; Шукати</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Знайдено: {{ courts|length }} судів</h3>
+    {% if courts %}
+    <table>
+        <thead>
+            <tr>
+                <th>Суд</th>
+                <th>Тип</th>
+                <th>Область</th>
+                <th>Адреса</th>
+                <th>Контакт</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for court in courts %}
+            <tr>
+                <td>
+                    <strong>{{ court.name }}</strong>
+                    {% if court.jurisdiction_settlements %}
+                    <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">
+                        Юрисдикція: {{ court.jurisdiction_settlements|join(', ') }}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-active">{{ court_types.get(court.court_type, court.court_type) }}</span>
+                </td>
+                <td>{{ court.oblast }}</td>
+                <td>{{ court.address }}</td>
+                <td>
+                    {% if court.phone %}{{ court.phone }}<br>{% endif %}
+                    {% if court.email %}<span style="color: var(--info);">{{ court.email }}</span><br>{% endif %}
+                    {% if court.website %}<a href="{{ court.website }}" target="_blank" style="color: var(--accent);">Сайт</a>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-secondary); padding: 2rem; text-align: center;">Нічого не знайдено. Спробуйте змінити параметри пошуку.</p>
+    {% endif %}
+</div>
+{% endblock %}

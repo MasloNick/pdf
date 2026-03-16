@@ -1,7 +1,18 @@
 {% extends 'base.html' %}
+{% block title %}Нормалізація — CourtNinja{% endblock %}
 {% block content %}
-<form method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".csv" required><br>
-    <button type="submit">Normalize</button>
-</form>
+<div class="page-header">
+    <h2>&#x1F527; Нормалізація адресних даних</h2>
+    <p>Завантажте CSV для очищення та нормалізації</p>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>CSV файл</label>
+            <input type="file" name="file" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F527; Нормалізувати</button>
+    </form>
+</div>
 {% endblock %}

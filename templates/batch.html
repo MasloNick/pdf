@@ -1,8 +1,23 @@
 {% extends 'base.html' %}
+{% block title %}Пакетна обробка — CourtNinja{% endblock %}
 {% block content %}
-<form method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".csv" required><br>
-    <label><input type="checkbox" name="normalise"> Normalise addresses</label><br>
-    <button type="submit">Upload</button>
-</form>
+<div class="page-header">
+    <h2>&#x1F4E5; Пакетна обробка адрес</h2>
+    <p>Завантажте CSV-файл з полями: oblast, district, settlement</p>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>CSV файл</label>
+            <input type="file" name="file" accept=".csv" required>
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="normalise"> Нормалізувати адреси
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary">&#x1F4E4; Завантажити та обробити</button>
+    </form>
+</div>
 {% endblock %}

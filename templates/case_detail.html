@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}{{ case.case_number }} — CourtNinja{% endblock %}
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <h2>&#x1F4CB; {{ case.title }}</h2>
+        <p>Справа {{ case.case_number }} | {{ case_types.get(case.case_type, case.case_type) }}</p>
+    </div>
+    <div class="btn-group">
+        <a href="/cases/{{ case.id }}/edit" class="btn btn-secondary">&#x270F; Редагувати</a>
+        <form method="post" action="/cases/{{ case.id }}/delete" style="display: inline;">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Видалити справу?')">&#x1F5D1; Видалити</button>
+        </form>
+    </div>
+</div>
+
+<!-- Case info -->
+<div class="card-grid" style="grid-template-columns: 2fr 1fr;">
+    <div class="card">
+        <h3>Основна інформація</h3>
+        <table>
+            <tr><td style="color: var(--text-secondary);">Номер справи</td><td><strong>{{ case.case_number }}</strong></td></tr>
+            <tr><td style="color: var(--text-secondary);">Суд</td><td>{{ case.court_name }}</td></tr>
+            <tr><td style="color: var(--text-secondary);">Суддя</td><td>{{ case.judge or '—' }}</td></tr>
+            <tr><td style="color: var(--text-secondary);">Тип</td><td>{{ case_types.get(case.case_type, case.case_type) }}</td></tr>
+            <tr><td style="color: var(--text-secondary);">Статус</td><td><span class="badge badge-{{ case.status }}">{{ statuses.get(case.status, case.status) }}</span></td></tr>
+            <tr><td style="color: var(--text-secondary);">Наступне засідання</td><td>{{ case.next_hearing or '—' }}</td></tr>
+            <tr><td style="color: var(--text-secondary);">Збір (сплачено/потрібно)</td><td>{{ "%.2f"|format(case.fee_paid) }} / {{ "%.2f"|format(case.fee_required) }} грн</td></tr>
+            <tr><td style="color: var(--text-secondary);">Створено</td><td>{{ case.created_at[:19] if case.created_at else '—' }}</td></tr>
+        </table>
+        {% if case.description %}
+        <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-dark); border-radius: 8px; color: var(--text-secondary);">
+            {{ case.description }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div>
+        <!-- Parties -->
+        <div class="card">
+            <h3>&#x1F465; Сторони ({{ case.parties|length }})</h3>
+            {% for party in case.parties %}
+            <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                <strong>{{ party.name }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ party.role }}</div>
+                {% if party.get('address') %}<div style="font-size: 0.8rem;">{{ party.address }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            <form method="post" action="/cases/{{ case.id }}/party" style="margin-top: 1rem;">
+                <div class="form-group">
+                    <input type="text" name="name" placeholder="Ім'я сторони" required>
+                </div>
+                <div class="form-group">
+                    <select name="role">
+                        <option value="Позивач">Позивач</option>
+                        <option value="Відповідач">Відповідач</option>
+                        <option value="Третя особа">Третя особа</option>
+                        <option value="Представник">Представник</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="address" placeholder="Адреса (необов'язково)">
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm">+ Додати</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Deadlines -->
+<div class="card">
+    <h3>&#x23F0; Дедлайни ({{ case.deadlines|length }})</h3>
+    {% for d in case.deadlines %}
+    <div class="deadline-item">
+        {% set days_left = d.days_left if d.days_left is defined else 0 %}
+        <div class="deadline-days {% if d.completed %}ok{% elif d.get('is_overdue') %}overdue{% else %}ok{% endif %}">
+            {% if d.completed %}
+                &#x2705;
+            {% else %}
+                {{ d.due_date }}
+            {% endif %}
+        </div>
+        <div style="flex: 1;">
+            <strong {% if d.completed %}style="text-decoration: line-through; color: var(--text-muted);"{% endif %}>
+                {{ d.title }}
+            </strong>
+            {% if d.description %}
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ d.description }}</div>
+            {% endif %}
+        </div>
+        {% if not d.completed %}
+        <form method="post" action="/cases/{{ case.id }}/deadline/{{ d.id }}/complete" style="display: inline;">
+            <button type="submit" class="btn btn-success btn-sm">&#x2713;</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <form method="post" action="/cases/{{ case.id }}/deadline" style="margin-top: 1rem;">
+        <div class="form-row">
+            <div class="form-group">
+                <input type="text" name="title" placeholder="Назва дедлайну" required>
+            </div>
+            <div class="form-group">
+                <input type="date" name="due_date" required>
+            </div>
+            <div class="form-group">
+                <input type="text" name="description" placeholder="Опис (необов'язково)">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">+ Додати дедлайн</button>
+    </form>
+</div>
+
+<!-- Notes / Timeline -->
+<div class="card">
+    <h3>&#x1F4DD; Нотатки та події</h3>
+    {% for note in case.notes|reverse %}
+    <div style="padding: 0.8rem 0; border-bottom: 1px solid var(--border);">
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+            {{ note.timestamp[:16] if note.timestamp else '' }} — {{ note.author }}
+        </div>
+        <div style="margin-top: 0.3rem;">{{ note.text }}</div>
+    </div>
+    {% endfor %}
+
+    <form method="post" action="/cases/{{ case.id }}/note" style="margin-top: 1rem;">
+        <div class="form-group">
+            <textarea name="text" placeholder="Додати нотатку..." rows="2" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">+ Додати нотатку</button>
+    </form>
+</div>
+{% endblock %}
