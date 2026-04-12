@@ -1,75 +1,156 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 style="margin-bottom:16px;">Результати сканування NPL-торгів</h2>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+        <h2 style="margin:0;font-size:1.4rem;">Торги NPL-портфелів</h2>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:4px;">Права вимоги, кредитні портфелі, дебіторська заборгованість</p>
+    </div>
+    <a href="/auctions/scan" class="btn btn-primary">&#8635; Оновити</a>
+</div>
 
 {% if errors %}
-<div class="card" style="border-left: 3px solid var(--red);">
-    <h2>Помилки при скануванні</h2>
-    <ul style="font-size:0.85rem;">
-        {% for err in errors %}
-        <li style="color:var(--red);">{{ err }}</li>
-        {% endfor %}
-    </ul>
-    <p style="font-size:0.82rem;color:var(--text2);">Деякі сайти блокують автоматичний доступ. Перевірені лоти нижче все одно відображаються.</p>
+<div class="flash" style="font-size:0.82rem;">
+    Деякі джерела недоступні ({{ errors|length }}). Показано перевірені лоти.
 </div>
 {% endif %}
 
 <div class="stats-grid">
-    <div class="stat-card">
+    <div class="stat-card" style="border-left:3px solid var(--green);">
+        <div class="number">{{ lots|selectattr('category','equalto','active')|list|length }}</div>
+        <div class="label">Активних</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid var(--orange);">
+        <div class="number">{{ lots|selectattr('category','equalto','failed')|list|length }}</div>
+        <div class="label">Не відбулися</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid var(--text2);">
+        <div class="number">{{ lots|selectattr('category','equalto','history')|list|length }}</div>
+        <div class="label">Історія</div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid var(--accent);">
         <div class="number">{{ lots|length }}</div>
-        <div class="label">Всього лотів</div>
+        <div class="label">Всього</div>
     </div>
-    {% for key, items in scraped.items() %}
-    <div class="stat-card">
-        <div class="number">{{ items|length }}</div>
-        <div class="label">{{ key|upper }} (скрапінг)</div>
-    </div>
-    {% endfor %}
 </div>
 
-<!-- ALL LOTS TABLE -->
-<div class="card">
-    <h2>Лоти прав вимоги / NPL-портфелів</h2>
+<!-- ==================== АКТУАЛЬНІ ==================== -->
+{% set active_lots = lots|selectattr('category','equalto','active')|list %}
+{% if active_lots %}
+<div class="card" style="border-left:3px solid var(--green);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="background:var(--green);color:#fff;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">АКТУАЛЬНІ</span>
+        <h2 style="margin:0;">Активні торги ({{ active_lots|length }})</h2>
+    </div>
     <div style="overflow-x:auto;">
     <table>
+        <tr><th>Джерело</th><th>Опис</th><th>Тип аукціону</th><th>Продавець</th><th>Сума / Ціна</th><th>Гарантійний</th><th>Дата</th><th></th></tr>
+        {% for lot in active_lots %}
         <tr>
-            <th>Джерело</th>
-            <th>Назва / Опис</th>
-            <th>Продавець</th>
-            <th>Ціна</th>
-            <th>Статус</th>
-            <th>Посилання</th>
-        </tr>
-        {% for lot in lots %}
-        <tr>
-            <td><span class="tag tag-blue">{{ lot.source or '—' }}</span></td>
-            <td style="max-width:400px;">{{ lot.title }}</td>
+            <td><span class="tag tag-blue">{{ lot.source }}</span></td>
+            <td style="max-width:300px;">{{ lot.title }}</td>
+            <td style="font-size:0.82rem;">{{ lot.auction_type or '—' }}</td>
             <td>{{ lot.seller or '—' }}</td>
-            <td>{{ lot.price or '—' }}</td>
-            <td>
-                {% set s = lot.status|default('')|lower() %}
-                {% if 'актив' in s or '2026' in s %}<span class="tag tag-green">{{ lot.status }}</span>
-                {% elif 'заверш' in s or 'продано' in s %}<span class="tag tag-gray">{{ lot.status }}</span>
-                {% elif 'не відбувся' in s %}<span class="tag tag-orange">{{ lot.status }}</span>
-                {% else %}<span class="tag tag-blue">{{ lot.status or '—' }}</span>{% endif %}
-            </td>
-            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-outline" style="padding:4px 10px;font-size:0.8rem;">Відкрити</a></td>
+            <td style="white-space:nowrap;">{{ lot.price or '—' }}</td>
+            <td style="font-size:0.82rem;">{{ lot.guarantee or '—' }}</td>
+            <td><span class="tag tag-green">{{ lot.date or lot.status }}</span></td>
+            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:5px 12px;font-size:0.8rem;">Відкрити</a></td>
         </tr>
         {% endfor %}
     </table>
     </div>
 </div>
+{% endif %}
 
-<!-- QUICK LINKS -->
+<!-- ==================== НЕ ВІДБУЛИСЯ ==================== -->
+{% set failed_lots = lots|selectattr('category','equalto','failed')|list %}
+{% if failed_lots %}
+<div class="card" style="border-left:3px solid var(--orange);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="background:var(--orange);color:#000;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">УВАГА</span>
+        <h2 style="margin:0;">Не відбулися — можуть бути перевиставлені ({{ failed_lots|length }})</h2>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px;">Ці аукціони не відбулися через відсутність учасників. Зазвичай перевиставляються зі зниженою ціною — слідкуйте!</p>
+    <div style="overflow-x:auto;">
+    <table>
+        <tr><th>Джерело</th><th>Опис</th><th>Продавець</th><th>Стартова ціна</th><th>Дата</th><th></th></tr>
+        {% for lot in failed_lots %}
+        <tr>
+            <td><span class="tag tag-orange">{{ lot.source }}</span></td>
+            <td style="max-width:350px;">{{ lot.title }}</td>
+            <td>{{ lot.seller or '—' }}</td>
+            <td style="white-space:nowrap;">{{ lot.price or '—' }}</td>
+            <td>{{ lot.date or '—' }}</td>
+            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-warning" style="padding:5px 12px;font-size:0.8rem;">Перевірити</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ==================== ДОДАТКОВО ЗНАЙДЕНЕ СКРАПЕРОМ ==================== -->
+{% set scraped_total = 0 %}
+{% for key, items in scraped.items() %}{% set scraped_total = scraped_total + items|length %}{% endfor %}
+{% if scraped_total > 0 %}
+<div class="card" style="border-left:3px solid var(--accent);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="background:var(--accent);color:#fff;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">НОВЕ</span>
+        <h2 style="margin:0;">Знайдено скрапером</h2>
+    </div>
+    {% for key, items in scraped.items() %}
+    {% if items %}
+    <h3 style="margin-top:12px;">{{ key|upper }} ({{ items|length }})</h3>
+    <table>
+        <tr><th>Назва</th><th>Посилання</th></tr>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.title }}</td>
+            <td><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.url[:60] }}...</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- ==================== ІСТОРІЯ ==================== -->
+{% set history_lots = lots|selectattr('category','equalto','history')|list %}
+{% if history_lots %}
+<div class="card" style="border-left:3px solid var(--text2);opacity:0.85;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="background:var(--text2);color:#fff;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">ІСТОРІЯ</span>
+        <h2 style="margin:0;">Завершені продажі — для аналітики цін ({{ history_lots|length }})</h2>
+    </div>
+    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px;">Ці торги вже завершені. Використовуйте для розуміння ринкових цін.</p>
+    <div style="overflow-x:auto;">
+    <table>
+        <tr><th>Джерело</th><th>Опис</th><th>Продавець</th><th>Результат</th><th>Дата</th><th></th></tr>
+        {% for lot in history_lots %}
+        <tr style="opacity:0.8;">
+            <td><span class="tag tag-gray">{{ lot.source }}</span></td>
+            <td style="max-width:350px;">{{ lot.title }}</td>
+            <td>{{ lot.seller or '—' }}</td>
+            <td style="white-space:nowrap;">{{ lot.price or '—' }}</td>
+            <td>{{ lot.date or '—' }}</td>
+            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-outline" style="padding:5px 12px;font-size:0.8rem;">Деталі</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ==================== ШВИДКІ ПОСИЛАННЯ ==================== -->
 <div class="card">
-    <h2>Пряме посилання на пошук</h2>
+    <h2 style="margin-bottom:14px;">Шукати самостійно</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" rel="noopener" class="btn btn-primary">ProZorro.Sale — право вимоги</a>
+        <a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" rel="noopener" class="btn btn-primary">ProZorro — право вимоги</a>
         <a href="https://setam.net.ua/auctions" target="_blank" rel="noopener" class="btn btn-primary">SETAM — всі лоти</a>
-        <a href="https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv" target="_blank" rel="noopener" class="btn btn-primary">ФГВ — продаж активів</a>
-        <a href="https://ubiz.ua/sale3/filter/bankrupts-property" target="_blank" rel="noopener" class="btn btn-success">UBIZ — банкрутство</a>
-        <a href="https://sale.uub.com.ua/filter/bankrupts-property" target="_blank" rel="noopener" class="btn btn-success">UUB — банкрутство</a>
-        <a href="http://torgi.fg.gov.ua/" target="_blank" rel="noopener" class="btn btn-warning">ФГВ Торги</a>
+        <a href="https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv" target="_blank" rel="noopener" class="btn btn-success">ФГВ — продаж активів</a>
+        <a href="http://torgi.fg.gov.ua/" target="_blank" rel="noopener" class="btn btn-success">ФГВ Торги</a>
+        <a href="https://ubiz.ua/sale3/filter/bankrupts-property" target="_blank" rel="noopener" class="btn btn-warning">UBIZ — банкрутство</a>
+        <a href="https://sale.uub.com.ua/filter/bankrupts-property" target="_blank" rel="noopener" class="btn btn-warning">UUB — банкрутство</a>
     </div>
 </div>
 {% endblock %}
