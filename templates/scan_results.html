@@ -1,99 +1,75 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Результати сканування</h2>
+<h2 style="margin-bottom:16px;">Результати сканування NPL-торгів</h2>
 
-{% if results.errors %}
-<div class="card" style="border-left: 3px solid #e74c3c;">
-    <h2>Помилки</h2>
-    <ul>
-        {% for err in results.errors %}
-        <li style="color:#721c24;font-size:0.9rem;">{{ err }}</li>
+{% if errors %}
+<div class="card" style="border-left: 3px solid var(--red);">
+    <h2>Помилки при скануванні</h2>
+    <ul style="font-size:0.85rem;">
+        {% for err in errors %}
+        <li style="color:var(--red);">{{ err }}</li>
         {% endfor %}
     </ul>
+    <p style="font-size:0.82rem;color:var(--text2);">Деякі сайти блокують автоматичний доступ. Перевірені лоти нижче все одно відображаються.</p>
 </div>
 {% endif %}
 
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="number">{{ results.setam|length }}</div>
-        <div class="label">SETAM</div>
+        <div class="number">{{ lots|length }}</div>
+        <div class="label">Всього лотів</div>
     </div>
+    {% for key, items in scraped.items() %}
     <div class="stat-card">
-        <div class="number">{{ results.prozorro|length }}</div>
-        <div class="label">ProZorro</div>
+        <div class="number">{{ items|length }}</div>
+        <div class="label">{{ key|upper }} (скрапінг)</div>
     </div>
-    <div class="stat-card">
-        <div class="number">{{ results.dgf|length }}</div>
-        <div class="label">ФГВ</div>
-    </div>
-    <div class="stat-card">
-        <div class="number">{{ results.banks|length }}</div>
-        <div class="label">Банківські сайти</div>
-    </div>
+    {% endfor %}
 </div>
 
-{% if results.setam %}
+<!-- ALL LOTS TABLE -->
 <div class="card">
-    <h2>SETAM ({{ results.setam|length }})</h2>
+    <h2>Лоти прав вимоги / NPL-портфелів</h2>
+    <div style="overflow-x:auto;">
     <table>
-        <tr><th>Назва</th><th>Посилання</th></tr>
-        {% for a in results.setam %}
         <tr>
-            <td>{{ a.title }}</td>
-            <td><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.url }}</a></td>
+            <th>Джерело</th>
+            <th>Назва / Опис</th>
+            <th>Продавець</th>
+            <th>Ціна</th>
+            <th>Статус</th>
+            <th>Посилання</th>
+        </tr>
+        {% for lot in lots %}
+        <tr>
+            <td><span class="tag tag-blue">{{ lot.source or '—' }}</span></td>
+            <td style="max-width:400px;">{{ lot.title }}</td>
+            <td>{{ lot.seller or '—' }}</td>
+            <td>{{ lot.price or '—' }}</td>
+            <td>
+                {% set s = lot.status|default('')|lower() %}
+                {% if 'актив' in s or '2026' in s %}<span class="tag tag-green">{{ lot.status }}</span>
+                {% elif 'заверш' in s or 'продано' in s %}<span class="tag tag-gray">{{ lot.status }}</span>
+                {% elif 'не відбувся' in s %}<span class="tag tag-orange">{{ lot.status }}</span>
+                {% else %}<span class="tag tag-blue">{{ lot.status or '—' }}</span>{% endif %}
+            </td>
+            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-outline" style="padding:4px 10px;font-size:0.8rem;">Відкрити</a></td>
         </tr>
         {% endfor %}
     </table>
+    </div>
 </div>
-{% endif %}
 
-{% if results.prozorro %}
+<!-- QUICK LINKS -->
 <div class="card">
-    <h2>ProZorro.Sale ({{ results.prozorro|length }})</h2>
-    <table>
-        <tr><th>Назва</th><th>Продавець</th><th>Тип</th><th>Борг</th><th>Ціна</th><th>Статус</th></tr>
-        {% for a in results.prozorro %}
-        <tr>
-            <td>{% if a.url %}<a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title[:70] }}</a>{% else %}{{ a.title[:70] }}{% endif %}</td>
-            <td>{{ a.seller or '—' }}</td>
-            <td>{{ a.portfolio_type or '—' }}</td>
-            <td>{{ fmt_uah(a.total_debt) }}</td>
-            <td>{{ fmt_uah(a.start_price) }}</td>
-            <td><span class="tag tag-green">{{ a.status }}</span></td>
-        </tr>
-        {% endfor %}
-    </table>
+    <h2>Пряме посилання на пошук</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" rel="noopener" class="btn btn-primary">ProZorro.Sale — право вимоги</a>
+        <a href="https://setam.net.ua/auctions" target="_blank" rel="noopener" class="btn btn-primary">SETAM — всі лоти</a>
+        <a href="https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv" target="_blank" rel="noopener" class="btn btn-primary">ФГВ — продаж активів</a>
+        <a href="https://ubiz.ua/sale3/filter/bankrupts-property" target="_blank" rel="noopener" class="btn btn-success">UBIZ — банкрутство</a>
+        <a href="https://sale.uub.com.ua/filter/bankrupts-property" target="_blank" rel="noopener" class="btn btn-success">UUB — банкрутство</a>
+        <a href="http://torgi.fg.gov.ua/" target="_blank" rel="noopener" class="btn btn-warning">ФГВ Торги</a>
+    </div>
 </div>
-{% endif %}
-
-{% if results.dgf %}
-<div class="card">
-    <h2>ФГВ / Фонд гарантування вкладів ({{ results.dgf|length }})</h2>
-    <ul>
-        {% for item in results.dgf %}
-        <li><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a></li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
-
-{% if results.banks %}
-<div class="card">
-    <h2>Банківські сайти ({{ results.banks|length }})</h2>
-    <table>
-        <tr><th>Банк</th><th>Тип</th><th>Назва</th><th>Сторінка</th></tr>
-        {% for item in results.banks %}
-        <tr>
-            <td><strong>{{ item.bank }}</strong></td>
-            <td><span class="tag tag-gray">{{ item.bank_type }}</span></td>
-            <td><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title[:70] }}</a></td>
-            <td>{{ item.page_type }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
-{% endif %}
-
-<br>
-<a href="/auctions">&larr; До списку торгів</a>
 {% endblock %}

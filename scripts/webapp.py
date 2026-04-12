@@ -242,58 +242,26 @@ def auctions_list():
 
 @app.route("/auctions/scan")
 def auctions_scan():
-    """Run scrapers and show results (does NOT require live internet for UI)."""
-    results: Dict[str, Any] = {"setam": [], "prozorro": [], "dgf": [], "banks": [], "errors": []}
+    """Scan all sources for NPL auctions."""
+    from scripts.scrapers.auction_scanner import AuctionScraper, get_known_lots
 
-    # Try SETAM
-    try:
-        from scripts.scrapers.setam import SetamScraper
-        scraper = SetamScraper(timeout=10, max_retries=1)
-        raw_items = scraper.search_npl()  # HTML scraping, no API
-        results["setam"] = raw_items
-        results["errors"].extend(scraper.errors)
-    except Exception as exc:
-        results["errors"].append(f"SETAM: {exc}")
+    scraper = AuctionScraper(timeout=10, max_retries=1)
+    scan_data = scraper.scan_all()
 
-    # Try ProZorro
-    try:
-        from scripts.scrapers.prozorro import ProzorroScraper
-        scraper = ProzorroScraper(timeout=10, max_retries=1)
-        raw_items = scraper.search_npl(limit=20)
-        for raw in raw_items:
-            parsed = scraper.parse_procedure(raw)
-            results["prozorro"].append(parsed)
-            with get_db() as conn:
-                AuctionRecord(**{k: v for k, v in parsed.items() if k != "raw_data"}).save(conn)
-        results["errors"].extend(scraper.errors)
-    except Exception as exc:
-        results["errors"].append(f"ProZorro: {exc}")
+    # Combine scraped + known
+    all_lots = list(scan_data["known"])  # verified lots always show
+    for source_key, items in scan_data["scraped"].items():
+        for item in items:
+            if not any(l["url"] == item["url"] for l in all_lots):
+                all_lots.append(item)
 
-    # Try DGF
-    try:
-        from scripts.scrapers.prozorro import DGFScraper
-        scraper = DGFScraper(timeout=10, max_retries=1)
-        dgf_items = scraper.search_dgf_sales()
-        results["dgf"] = dgf_items
-        results["errors"].extend(scraper.errors)
-    except Exception as exc:
-        results["errors"].append(f"DGF: {exc}")
+    scraped_count = sum(len(v) for v in scan_data["scraped"].values())
+    flash(f"Знайдено: {len(scan_data['known'])} перевірених лотів + {scraped_count} з веб-сканування.")
 
-    # Try bank websites
-    try:
-        from scripts.scrapers.banks import BankSiteScraper
-        from scripts.scrapers.parallel import scan_all_banks_parallel
-        scraper = BankSiteScraper(timeout=8, max_retries=1)
-        bank_items, bank_errors = scan_all_banks_parallel(BANK_REGISTRY, scraper, max_workers=15)
-        results["banks"] = bank_items
-        results["errors"].extend(bank_errors)
-    except Exception as exc:
-        results["errors"].append(f"Banks: {exc}")
-
-    total_found = sum(len(v) for k, v in results.items() if k != "errors")
-    flash(f"Сканування завершено. Знайдено {total_found} результатів.")
-
-    return render_template("scan_results.html", results=results)
+    return render_template("scan_results.html",
+                           lots=all_lots,
+                           scraped=scan_data["scraped"],
+                           errors=scan_data["errors"])
 
 
 # ============================================================================
