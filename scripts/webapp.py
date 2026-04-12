@@ -31,6 +31,7 @@ from scripts.analysis.portfolio import (  # noqa: E402
 )
 from scripts.analysis.pricing import recommend_price, compare_price_to_market  # noqa: E402
 from scripts.analysis.scoring import score_portfolio  # noqa: E402
+from scripts.checkers.courts import find_court_by_address  # noqa: E402
 from scripts.scrapers.banks import (  # noqa: E402
     BANK_REGISTRY,
     AUCTION_PLATFORMS,
@@ -74,9 +75,28 @@ def resolve_code(oblast: str, district: str, settlement: str) -> str:
     return "-".join(parts)
 
 
-def find_court(code: str) -> str:
-    """Dummy lookup of court by code."""
-    return f"Court for {code}"
+def find_court(code: str, oblast: str = "", district: str = "", settlement: str = "") -> Dict[str, Any]:
+    """Look up court via court.gov.ua / «Суд на долоні» API.
+
+    Falls back to a simple label when the API is unreachable.
+    """
+    try:
+        result = find_court_by_address(oblast, district, settlement)
+        if result.get("court_name") and "Не знайдено" not in result["court_name"]:
+            return result
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Court lookup failed: %s", exc)
+
+    return {
+        "court_name": f"Пошук суду: {code}",
+        "court_code": "",
+        "address": "",
+        "instance": "",
+        "status": "",
+        "source": "court.gov.ua (API недоступний)",
+        "url": "https://court.gov.ua/sudova-vlada/sudy/",
+    }
 
 
 def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Dict[str, str]]:
@@ -91,7 +111,7 @@ def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Di
             district = normalize(district)
             settlement = normalize(settlement)
         code = resolve_code(oblast, district, settlement)
-        court = find_court(code)
+        court = find_court(code, oblast=oblast, district=district, settlement=settlement)
         processed.append({
             "oblast": oblast,
             "district": district,
@@ -453,10 +473,10 @@ def address_search():
             district = normalize(district)
             settlement = normalize(settlement)
         code = resolve_code(oblast, district, settlement)
-        court = find_court(code)
+        court = find_court(code, oblast=oblast, district=district, settlement=settlement)
         return render_template(
             "result.html",
-            result=court,
+            court=court,
             oblast=oblast,
             district=district,
             settlement=settlement,

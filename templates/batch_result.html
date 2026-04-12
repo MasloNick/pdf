@@ -9,7 +9,7 @@
         <td>{{ row.oblast }}</td>
         <td>{{ row.district }}</td>
         <td>{{ row.settlement }}</td>
-        <td>{{ row.court }}</td>
+        <td>{% if row.court is mapping %}{{ row.court.court_name }}{% else %}{{ row.court }}{% endif %}</td>
     </tr>
     {% endfor %}
 </table>
