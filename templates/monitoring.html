@@ -1,22 +1,60 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Моніторинг ринку NPL</h2>
+<h2>Мо��іторинг ринку NPL</h2>
+
+<!-- Search strategies -->
+<div class="card" style="border-left: 3px solid #3498db;">
+    <h2>Стратегії пошуку портфелів</h2>
+    <table>
+        <tr><th>Пріоритет</th><th>Стратегія</th><th>Опис</th><th>Ключові слова</th><th>Пряме посилання</th></tr>
+        {% for s in strategies %}
+        <tr>
+            <td>
+                {% if s.priority == 'high' %}<span class="tag tag-red">високий</span>
+                {% elif s.priority == 'medium' %}<span class="tag tag-orange">середній</span>
+                {% else %}<span class="tag tag-gray">низь��ий</span>{% endif %}
+            </td>
+            <td><strong>{{ s.name }}</strong></td>
+            <td style="font-size:0.85rem;">{{ s.description }}</td>
+            <td style="font-size:0.8rem;">
+                {% for kw in s.keywords[:3] %}
+                <code>{{ kw }}</code>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                {% if s.keywords|length > 3 %}...{% endif %}
+            </td>
+            <td>
+                {% if s.target_url %}
+                <a href="{{ s.target_url }}" target="_blank" rel="noopener" class="btn btn-primary" style="font-size:0.8rem;padding:4px 8px;">Перейти</a>
+                {% else %}—{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
 
 <!-- Platforms -->
 <div class="card">
-    <h2>Торгові платформи</h2>
+    <h2>Торгові платформи та аналітичні джерела</h2>
     <table>
-        <tr><th>Платформа</th><th>Тип</th><th>Опис</th><th>Посилання</th></tr>
+        <tr><th>Платформа</th><th>Тип</th><th>Опис</th><th>Як шукати</th><th>Посилання</th></tr>
         {% for p in platforms %}
         <tr>
             <td><strong>{{ p.name }}</strong></td>
             <td>
                 {% if p.type == 'state' %}<span class="tag tag-blue">державна</span>
-                {% elif p.type == 'closed' %}<span class="tag tag-orange">закри��а</span>
+                {% elif p.type == 'closed' %}<span class="tag tag-orange">закрита</span>
+                {% elif p.type == 'analytics' %}<span class="tag tag-green">аналітика</span>
                 {% else %}<span class="tag tag-gray">{{ p.type }}</span>{% endif %}
             </td>
-            <td>{{ p.description }}</td>
-            <td>{% if p.url %}<a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.url }}</a>{% else %}—{% endif %}</td>
+            <td style="font-size:0.85rem;">{{ p.description }}</td>
+            <td style="font-size:0.83rem;">{{ p.get('how_to_search', '') }}</td>
+            <td>
+                {% if p.search_url %}
+                <a href="{{ p.search_url }}" target="_blank" rel="noopener" class="btn btn-primary" style="font-size:0.8rem;padding:4px 8px;">Пошук</a>
+                {% elif p.url %}
+                <a href="{{ p.url }}" target="_blank" rel="noopener" class="btn btn-success" style="font-size:0.8rem;padding:4px 8px;">Сайт</a>
+                {% else %}—{% endif %}
+            </td>
         </tr>
         {% endfor %}
     </table>
@@ -26,14 +64,13 @@
 {% if accreditation %}
 <div class="card" style="border-left: 3px solid #f39c12;">
     <h2>Акредитація у банках</h2>
-    <p>Деякі банки проводять внутрішні аукціони серед акредитованих фінансових компаній. Нижче — відома інформація:</p>
+    <p>Деякі банки проводять внутрішні аукціони серед акредитованих фінансових компаній:</p>
     <table>
-        <tr><th>Банк</th><th>Сайт</th><th>Сторінка акредитації</th><th>Примітки</th></tr>
+        <tr><th>Банк</th><th>Сайт</th><th>Примітки</th></tr>
         {% for info in accreditation %}
         <tr>
             <td><strong>{{ info.bank }}</strong></td>
             <td><a href="{{ info.website }}" target="_blank" rel="noopener">{{ info.website }}</a></td>
-            <td>{% if info.accreditation_page %}<a href="{{ info.accreditation_page }}" target="_blank" rel="noopener">Сторінка</a>{% else %}—{% endif %}</td>
             <td style="font-size:0.85rem;">{{ info.notes }}</td>
         </tr>
         {% endfor %}
@@ -43,9 +80,9 @@
 
 <!-- Banks tracked -->
 <div class="card">
-    <h2>��анки та МФО під моніторингом ({{ banks|length }})</h2>
+    <h2>Банки та МФО під моніторингом ({{ banks|length }})</h2>
     <table>
-        <tr><th>Назва</th><th>Короткою</th><th>Тип</th><th>Сайт</th><th>NPL-сторінка</th><th>Примітки</th></tr>
+        <tr><th>Назва</th><th>Коротко</th><th>Тип</th><th>Сайт</th><th>URL перевірено</th><th>Примітки</th></tr>
         {% for b in banks %}
         <tr>
             <td>{{ b.name }}</td>
@@ -57,8 +94,11 @@
                 {% elif b.bank_type == 'fc' %}<span class="tag tag-red">ФК</span>
                 {% else %}<span class="tag tag-gray">{{ b.bank_type }}</span>{% endif %}
             </td>
-            <td><a href="{{ b.website }}" target="_blank" rel="noopener">Сайт</a></td>
-            <td>{% if b.npl_page %}<a href="{{ b.npl_page }}" target="_blank" rel="noopener">NPL</a>{% else %}—{% endif %}</td>
+            <td><a href="{{ b.website }}" target="_blank" rel="noopener">{{ b.website }}</a></td>
+            <td>
+                {% if b.url_verified %}<span class="tag tag-green">так</span>
+                {% else %}<span class="tag tag-orange">потребує перевірки</span>{% endif %}
+            </td>
             <td style="font-size:0.85rem;">{{ b.notes }}</td>
         </tr>
         {% endfor %}
@@ -68,23 +108,16 @@
 <!-- DGF historical data -->
 <div class="card">
     <h2>ФГВ — історія продажу портфелів</h2>
-    <p>Фонд гарантування вкладів фізичних осіб (<a href="https://fg.gov.ua" target="_blank" rel="noopener">fg.gov.ua</a>)
-       продає активи ліквідованих банків з 2012 року. З 2020 року основна частина продажів здійснюється через ProZorro.Sale.</p>
-    <p><strong>Для перевірки:</strong> чи ФК-покупець подавав позови та виконавчі написи по придбаних портфелях —
-       використовуйте <a href="/check-company">Перевірку компанії</a> із ЄДРПОУ поку��ця.</p>
+    <p><a href="https://www.fg.gov.ua" target="_blank" rel="noopener">Фонд гарантування вкладів фізичних осіб</a>
+       продає активи ліквідованих банків з 2012 року. З 2020 основна частина — через
+       <a href="https://prozorro.sale" target="_blank" rel="noopener">ProZorro.Sale</a>.</p>
+    <p><strong>Як перевірити покупця:</strong></p>
+    <ol>
+        <li>Знайти ФК-покупця з рішень АМКУ або ProZorro</li>
+        <li>Перевірити ЄДРПОУ через <a href="/check-company">Перевірку компанії</a></li>
+        <li>Шукати на <a href="https://reyestr.court.gov.ua" target="_blank" rel="noopener">reyestr.court.gov.ua</a>
+            позови від цієї ФК — якщо позовів немає, портфель може бути на перепродажі</li>
+    </ol>
     <p><a href="/auctions/scan" class="btn btn-primary">Сканувати ФГВ та інші джерела</a></p>
-</div>
-
-<!-- What to look for -->
-<div class="card">
-    <h2>Що шукати: ключові сигнали</h2>
-    <ul>
-        <li><strong>Банківські сайти</strong> — розділи "Продаж активів", "Непрацюючі активи", новини про тендери</li>
-        <li><strong>Річні звіти банків та МФО</strong> — згадки про продаж/списання портфелів</li>
-        <li><strong>НКЦПФР</strong> — розкриття інформації емітентами (великі ФК звітують про купівлю)</li>
-        <li><strong>Судові рішення</strong> — масові позови від однієї ФК = вони купили портфель</li>
-        <li><strong>Закриті тендери</strong> — банки надсилають запрошення акредитованим ФК</li>
-        <li><strong>МФО звіти</strong> — великі МФО (Манівео, MyCredit, CCloan) згадують продажі в фін. звітності</li>
-    </ul>
 </div>
 {% endblock %}

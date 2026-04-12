@@ -30,7 +30,12 @@ from scripts.analysis.portfolio import (  # noqa: E402
     import_portfolio_csv,
 )
 from scripts.analysis.pricing import recommend_price, compare_price_to_market  # noqa: E402
-from scripts.scrapers.banks import BANK_REGISTRY, PRIVATE_PLATFORMS, get_accreditation_info  # noqa: E402
+from scripts.scrapers.banks import (  # noqa: E402
+    BANK_REGISTRY,
+    AUCTION_PLATFORMS,
+    SEARCH_STRATEGIES,
+    get_accreditation_info,
+)
 
 
 # Initialise database on import
@@ -320,7 +325,8 @@ def monitoring():
     return render_template(
         "monitoring.html",
         banks=BANK_REGISTRY,
-        platforms=PRIVATE_PLATFORMS,
+        platforms=AUCTION_PLATFORMS,
+        strategies=SEARCH_STRATEGIES,
         accreditation=accreditation,
     )
 

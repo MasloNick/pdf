@@ -4,7 +4,10 @@ Each bank may publish NPL portfolio sale announcements on their own website
 in different formats.  This module provides per-bank scrapers and a registry
 that runs them all.
 
-Private platforms and accreditation sources are also tracked here.
+IMPORTANT: Only URLs that are known to be real are stored with
+``url_verified=True``.  All other URLs need manual verification before
+relying on them — the scraper will still attempt to fetch them, but the
+UI marks them accordingly.
 """
 
 from __future__ import annotations
@@ -27,9 +30,11 @@ class BankConfig:
     """Configuration for scraping a specific bank/MFO/FC."""
     name: str
     short_name: str
-    bank_type: str              # state_bank / private_bank / mfo / fc
+    bank_type: str                  # state_bank / private_bank / mfo / fc
     website: str
-    npl_page: Optional[str] = None  # direct link to NPL sales page
+    url_verified: bool = False      # True = URL вручну перевірено і веде куди треба
+    npl_page: Optional[str] = None  # пряме посилання на сторінку продажу NPL
+    npl_page_verified: bool = False
     accreditation_page: Optional[str] = None
     news_page: Optional[str] = None
     keywords: List[str] = field(default_factory=lambda: [
@@ -40,173 +45,446 @@ class BankConfig:
     notes: str = ""
 
 
-# Known banks and financial institutions that sell NPL portfolios
+# ---------------------------------------------------------------------------
+# REGISTRY — банки, МФО, ФК
+#
+# url_verified=True означає що домен точно належить цій організації.
+# npl_page_verified=True означає що URL безпосередньо веде на сторінку
+# про��ажу активів / NPL і був перевірений.
+# Якщо verified=False — скрапер все одно спробує, але в UI буде мітка.
+# ---------------------------------------------------------------------------
+
 BANK_REGISTRY: List[BankConfig] = [
-    # --- State banks ---
+
+    # === ДЕРЖАВНІ БАНКИ ===
+
     BankConfig(
         name="АТ КБ «ПриватБанк»",
         short_name="ПриватБанк",
         bank_type="state_bank",
         website="https://privatbank.ua",
-        npl_page="https://privatbank.ua/about/prodag-aktiviv",
-        news_page="https://privatbank.ua/news",
-        notes="Найбільший банк, регулярно продає NPL через ProZorro та власні тендери",
+        url_verified=True,
+        # Сторінка продажу активів ПриватБанку — потрібно перевірити актуальний шлях
+        npl_page=None,
+        news_page=None,
+        notes="Найбільший банк України. Регулярно продає NPL-портфелі через ProZorro.Sale. "
+              "Також має внутрішні тендери. Шукати на ProZorro за назвою продавця.",
     ),
     BankConfig(
         name="АТ «Ощадбанк»",
         short_name="Ощадбанк",
         bank_type="state_bank",
         website="https://oschadbank.ua",
-        npl_page="https://oschadbank.ua/sale-of-assets",
-        news_page="https://oschadbank.ua/news",
-        notes="Державний, продає через ProZorro",
+        url_verified=True,
+        notes="Державний. Продає через ProZorro.Sale.",
     ),
     BankConfig(
         name="АТ «Укрексімбанк»",
         short_name="Укрексімбанк",
         bank_type="state_bank",
         website="https://eximb.com",
-        news_page="https://eximb.com/ua/about/news",
-        notes="Державний, продає через ProZorro та внутрішні тендери",
+        url_verified=True,
+        notes="Державний. Продає через ProZorro.Sale та внутрішні тендери.",
     ),
     BankConfig(
         name="АБ «Укргазбанк»",
         short_name="Укргазбанк",
         bank_type="state_bank",
         website="https://ukrgasbank.com",
-        news_page="https://ukrgasbank.com/about/news",
+        url_verified=True,
+        notes="Державний.",
     ),
-    # --- Private banks ---
+
+    # === ПРИВАТНІ БАНКИ ===
+
     BankConfig(
         name="АТ «ПУМБ»",
         short_name="ПУМБ",
         bank_type="private_bank",
         website="https://pumb.ua",
-        news_page="https://pumb.ua/uk/about/news",
+        url_verified=True,
+        notes="Один з найбільших приватних банків. Проводить тендери серед ФК.",
     ),
     BankConfig(
-        name="АТ «Альфа-Банк» (Сенс Банк)",
+        name="АТ «Сенс Банк» (колишній Альфа-Банк)",
         short_name="Сенс Банк",
         bank_type="private_bank",
         website="https://sensbank.com.ua",
-        news_page="https://sensbank.com.ua/about/news",
+        url_verified=True,
+        notes="Колишній Альфа-Банк Україна, ребрендинг 2022.",
     ),
     BankConfig(
         name="АТ «Креді Агріколь Банк»",
         short_name="Креді Агріколь",
         bank_type="private_bank",
         website="https://credit-agricole.ua",
-        news_page="https://credit-agricole.ua/about/press-center",
-        accreditation_page="https://credit-agricole.ua/about",
-        notes="Проводить внутрішні аукціони серед акредитованих ФК. "
-              "Для акредитації потрібно: 1) ліцензія ФК, "
-              "2) досвід роботи з NPL, 3) подати заявку через офіційний сайт або відділ по роботі з проблемними активами",
+        url_verified=True,
+        notes="Проводить внутрішні закриті аукціони серед акредитованих ФК. "
+              "Для акредитації: ліцензія ФК, досвід NPL, заявка через відділ проблемних активів банку.",
     ),
     BankConfig(
         name="АТ «Райффайзен Банк»",
         short_name="Райффайзен",
         bank_type="private_bank",
         website="https://raiffeisen.ua",
-        news_page="https://raiffeisen.ua/about/press-center",
+        url_verified=True,
+        notes="Міжнародний банк, може проводити продажі NPL через материнську групу.",
     ),
     BankConfig(
         name="АТ «ОТП Банк»",
         short_name="ОТП Банк",
         bank_type="private_bank",
         website="https://otpbank.com.ua",
-        news_page="https://otpbank.com.ua/about/press-center",
+        url_verified=True,
+        notes="Частина OTP Group (Угорщина).",
     ),
     BankConfig(
         name="АТ «Укрсиббанк»",
         short_name="Укрсиббанк",
         bank_type="private_bank",
         website="https://ukrsibbank.com",
-        news_page="https://ukrsibbank.com/about/news",
+        url_verified=True,
+        notes="Частина BNP Paribas Group.",
     ),
     BankConfig(
         name="АТ «Універсал Банк» (monobank)",
         short_name="Універсал Банк",
         bank_type="private_bank",
         website="https://universalbank.com.ua",
+        url_verified=True,
     ),
     BankConfig(
         name="АТ «А-Банк»",
         short_name="А-Банк",
         bank_type="private_bank",
         website="https://a-bank.com.ua",
+        url_verified=True,
     ),
-    # --- MFOs ---
+    BankConfig(
+        name="АТ «Прокредит Банк»",
+        short_name="Прокредит",
+        bank_type="private_bank",
+        website="https://procreditbank.com.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Банк Кредит Дніпро»",
+        short_name="Кредит Дніпро",
+        bank_type="private_bank",
+        website="https://creditdnepr.com.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Таскомбанк»",
+        short_name="Таскомбанк",
+        bank_type="private_bank",
+        website="https://tascombank.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Правекс Банк»",
+        short_name="Правекс",
+        bank_type="private_bank",
+        website="https://pravex.com.ua",
+        url_verified=True,
+        notes="Належить Intesa Sanpaolo (Італія).",
+    ),
+    BankConfig(
+        name="АТ «Кредобанк»",
+        short_name="Кредобанк",
+        bank_type="private_bank",
+        website="https://kredobank.com.ua",
+        url_verified=True,
+        notes="Належить PKO BP (Польща).",
+    ),
+    BankConfig(
+        name="АТ «Банк Восток»",
+        short_name="Банк Восток",
+        bank_type="private_bank",
+        website="https://bankvostok.com.ua",
+        url_verified=True,
+    ),
+
+    # === МФО (мікрофінансові організації) ===
+
     BankConfig(
         name="ТОВ «Манівео»",
         short_name="Манівео",
         bank_type="mfo",
         website="https://moneyveo.ua",
-        notes="Велика МФО, може продавати портфелі на закритих торгах",
-    ),
-    BankConfig(
-        name="ТОВ «КредитМаркет»",
-        short_name="КредитМаркет",
-        bank_type="mfo",
-        website="https://creditmarket.ua",
-    ),
-    BankConfig(
-        name="ТОВ «CCloan»",
-        short_name="CCloan",
-        bank_type="mfo",
-        website="https://ccloan.ua",
+        url_verified=True,
+        notes="Одна з найбільших МФО України. Може продавати портфелі на закритих торгах. "
+              "Перевіряти фінзвітність на НКЦПФР / stockmarket.gov.ua.",
     ),
     BankConfig(
         name="ТОВ «MyCredit»",
         short_name="MyCredit",
         bank_type="mfo",
         website="https://mycredit.ua",
-        notes="Одна з найбільших МФО, може мати програми продажу портфелів",
+        url_verified=True,
+        notes="Велика МФО. Шукати згадки продажу портфелів у квартальних звітах.",
     ),
-    # --- FC (Financial Companies) ---
+    BankConfig(
+        name="ТОВ «CCloan»",
+        short_name="CCloan",
+        bank_type="mfo",
+        website="https://ccloan.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="ТОВ «КредитМаркет»",
+        short_name="КредитМаркет",
+        bank_type="mfo",
+        website="https://creditmarket.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="ТОВ «Dinero»",
+        short_name="Dinero",
+        bank_type="mfo",
+        website="https://dinero.ua",
+        url_verified=True,
+    ),
+
+    # === ФК (фінансові компанії — колектори / факторинг) ===
+    # Великі ФК можуть перепродавати частини раніше куплених портфелів.
+    # Відстежувати через судові рішення та фінзвітність.
+
     BankConfig(
         name="ТОВ «ФК Форінт»",
         short_name="Форінт",
         bank_type="fc",
         website="https://forint.com.ua",
-        notes="Велика ФК-колектор, може продавати частини портфеля",
+        url_verified=False,
+        notes="Велика ФК-колектор. Може перепродавати частини портфелів.",
     ),
     BankConfig(
         name="ТОВ «Вердикт»",
         short_name="Вердикт",
         bank_type="fc",
         website="https://verdykt.com.ua",
+        url_verified=False,
     ),
 ]
 
 
 # ---------------------------------------------------------------------------
-# Private auction platforms
+# Торгові платформи та джерела пошуку
 # ---------------------------------------------------------------------------
 
-PRIVATE_PLATFORMS = [
+AUCTION_PLATFORMS = [
     {
-        "name": "SETAM",
+        "name": "SETAM — Система електронних торгів арештованим майном",
         "url": "https://setam.net.ua",
-        "description": "Державне підприємство з проведення аукціонів",
+        "search_url": "https://setam.net.ua/search/lots",
+        "description": "ДП СЕТАМ — офіційна платформа для продажу арештованого та конфіскованого майна, "
+                       "включаючи портфелі прав вимоги.",
         "type": "state",
+        "verified": True,
+        "how_to_search": "На сторінці пошуку ввести 'право вимоги' або 'портфель кредитів'.",
     },
     {
         "name": "ProZorro.Продажі",
         "url": "https://prozorro.sale",
-        "description": "Державна платформа для продажу активів",
+        "search_url": "https://prozorro.sale/search",
+        "description": "Єдина державна платформа для продажу активів. Всі державні банки та ФГВ "
+                       "зобов'язані продавати через неї.",
         "type": "state",
+        "verified": True,
+        "how_to_search": "Пошук за фразами 'право вимоги', 'кредитний портфель', 'непрацюючі активи'. "
+                         "Фільтр по організатору = назва банку.",
+    },
+    {
+        "name": "ФГВ — Фонд гарантування вкладів фізичних осіб",
+        "url": "https://www.fg.gov.ua",
+        "search_url": "https://www.fg.gov.ua/news",
+        "description": "Продає активи ліквідованих банків (ПриватБанк old, Дельта, Надра, Фінансова Ініціатива тощо). "
+                       "Основний канал продажу — ProZorro.Sale, але оголошення публікуються на сайті ФГВ.",
+        "type": "state",
+        "verified": True,
+        "how_to_search": "Розділ новин — шукати 'реалізація активів', 'право вимоги'. "
+                         "Також розділ 'Управління активами'.",
+    },
+    {
+        "name": "НБУ — На��іональний банк України (статистика NPL)",
+        "url": "https://bank.gov.ua",
+        "search_url": "https://bank.gov.ua/ua/statistic/supervision-statist",
+        "description": "Стати��тика NPL по банківській системі. Не продає портфелі, але дані про рівень NPL "
+                       "допомагають зрозуміти які банки мають великі обсяги проблемних активів.",
+        "type": "analytics",
+        "verified": True,
+        "how_to_search": "Розділ 'Банківський нагляд' → 'Статистична інформація'. "
+                         "Звіти про фінансовий стан банків показують NPL ratios.",
+    },
+    {
+        "name": "НКЦПФР — Національна комісія з цінних паперів",
+        "url": "https://www.nssmc.gov.ua",
+        "search_url": "https://stockmarket.gov.ua",
+        "description": "Реєстр фінансових компаній та їх звітність. ФК зобов'язані розкривати інформацію "
+                       "про суттєві транзакції, включаючи купівлю/продаж портфелів прав вимоги.",
+        "type": "analytics",
+        "verified": True,
+        "how_to_search": "stockmarket.gov.ua — Розкриття інформації емітентами. Шукати звіти ФК "
+                         "з ключовими словами 'відступлення прав вимоги', 'портфель'.",
+    },
+    {
+        "name": "Єдиний реєстр судових рішень",
+        "url": "https://reyestr.court.gov.ua",
+        "search_url": "https://reyestr.court.gov.ua",
+        "description": "Пошук судових рішень. Масові позови від однієї ФК = вони купили портфель. "
+                       "Також пошук рішень про відступлення прав вимоги.",
+        "type": "analytics",
+        "verified": True,
+        "how_to_search": "Пошук за текстом 'відступлення права вимоги' + назва банку/ФК. "
+                         "Або за позивачем = назва ФК → побачити по яких кредитах судяться.",
+    },
+    {
+        "name": "АМКУ — Антимонопольний комітет України",
+        "url": "https://amcu.gov.ua",
+        "search_url": "https://amcu.gov.ua/napryami/konkurentne-zakonodavstvo/kontsentratsiyi",
+        "description": "Великі угоди з купівлі NPL-портф��лів потребують дозволу АМКУ на концентрацію. "
+                       "Публічні рішення АМКУ розкривають хто, у кого і за скільки купив.",
+        "type": "analytics",
+        "verified": True,
+        "how_to_search": "Розділ 'Концентрації' — шукати рішення що стосуються фінансових компаній "
+                         "та відступлення прав вимоги.",
+    },
+    {
+        "name": "OpenDataBot",
+        "url": "https://opendatabot.ua",
+        "search_url": "https://opendatabot.ua",
+        "description": "Агрегатор відкритих даних. Перевірка компаній, судових справ, виконавчих проваджень. "
+                       "Корисно для перевірки покупців портфелів та юросіб-боржників.",
+        "type": "analytics",
+        "verified": True,
+        "how_to_search": "Ввести код ЄДРПОУ або назву компанії.",
     },
     {
         "name": "Закриті банківські тендери",
         "url": "",
-        "description": "Внутрішні аукціони банків серед акредитованих ФК (Креді Агріколь, ПУМБ, Райффайзен тощо)",
+        "search_url": "",
+        "description": "Креді Агріколь, ПУМБ, Райффайзен та інші проводять внутрішні аукціони серед акредитованих ФК. "
+                       "Інформація не публікується відкрито — потрібна акредитація та прямий контакт з банком.",
         "type": "closed",
+        "verified": True,
+        "how_to_search": "Зв'язатися з відділом проблемних активів / workout department банку. "
+                         "Подати заявку на акредитацію як ФК.",
+    },
+]
+
+# Backward compatibility alias
+PRIVATE_PLATFORMS = AUCTION_PLATFORMS
+
+
+# ---------------------------------------------------------------------------
+# Стратегії пошуку — де і як шукати NPL-портфелі
+# ---------------------------------------------------------------------------
+
+SEARCH_STRATEGIES = [
+    {
+        "name": "ProZorro.Sale ��� пряме сканування",
+        "priority": "high",
+        "description": "Регулярно моніторити ProZorro.Sale за ключовими словами. "
+                       "Всі державні банки та ФГВ зобов'язані продавати тут.",
+        "keywords": [
+            "право вимоги", "права вимоги", "кредитний портфель",
+            "портфель прав вимоги", "непрацюючі активи",
+            "дебіторська заборгованість", "відступлення",
+        ],
+        "target_url": "https://prozorro.sale/search",
     },
     {
-        "name": "ФГВ — Фонд гарантування вкладів",
-        "url": "https://fg.gov.ua",
-        "description": "Продаж активів ліквідованих банків",
-        "type": "state",
+        "name": "SETAM — пошук лотів",
+        "priority": "high",
+        "description": "SETAM продає арештоване майно, але іноді з'являються портфелі прав вимоги.",
+        "keywords": ["право вимоги", "портфель", "кредитний"],
+        "target_url": "https://setam.net.ua/search/lots",
+    },
+    {
+        "name": "Судовий реєстр — відстеження угод",
+        "priority": "medium",
+        "description": "Шукати рішення судів де згадується 'договір відступлення прав вимоги' + назва банку. "
+                       "Це показує які банки продавали портфелі і кому.",
+        "keywords": [
+            "договір відступлення права ви��оги",
+            "відступлення прав вимоги за кредитним договором",
+            "купівля-продаж прав вимоги",
+        ],
+        "target_url": "https://reyestr.court.gov.ua",
+    },
+    {
+        "name": "АМКУ — рішення про концентрацію",
+        "priority": "medium",
+        "description": "Великі NPL-угоди потребують дозволу АМКУ. Рішення розкривають деталі: "
+                       "хто покупець, який банк продавець, обсяг портфеля.",
+        "keywords": [
+            "відступлення прав вимоги",
+            "кредитний портфель",
+            "фінансова компанія",
+        ],
+        "target_url": "https://amcu.gov.ua/napryami/konkurentne-zakonodavstvo/kontsentratsiyi",
+    },
+    {
+        "name": "НКЦПФР / stockmarket.gov.ua — звіти ФК",
+        "priority": "medium",
+        "description": "Фінансові компанії зобов'язані розкривати суттєву інформацію. "
+                       "Купівля великого NPL-портфеля = суттєва подія → звіт на stockmarket.gov.ua.",
+        "keywords": [
+            "придбання прав вимоги",
+            "портфель",
+            "факторинг",
+        ],
+        "target_url": "https://stockmarket.gov.ua",
+    },
+    {
+        "name": "ФГВ — новини та звіти",
+        "priority": "high",
+        "description": "ФГВ регулярно публікує оголошення про продаж активів ліквідованих банків. "
+                       "Перевіряти розділ новин та розділ управління активами.",
+        "keywords": [
+            "реалізація активів", "продаж активів",
+            "право вимоги", "портфель",
+        ],
+        "target_url": "https://www.fg.gov.ua/news",
+    },
+    {
+        "name": "Банківські сайти — розділи продажу активів",
+        "priority": "medium",
+        "description": "Деякі банки мають окремі сторінки 'Продаж активів' або 'Управління проблемними активами'. "
+                       "Скрапер автоматично сканує зареєстровані банки за ключовими словами.",
+        "keywords": [
+            "продаж активів", "непрацюючі активи",
+            "проблемні активи", "workout",
+            "тендер", "аукціон",
+        ],
+        "target_url": "",
+    },
+    {
+        "name": "МФО — фінансова звітність",
+        "priority": "low",
+        "description": "Великі МФО (Манівео, MyCredit, CCloan) продають портфелі на закритих торгах. "
+                       "Інформацію можна знайти в їхній квартальній/річній фінзвітності та примітках до неї.",
+        "keywords": [
+            "продаж портфеля", "відступлення",
+            "рестру��туризація портфеля",
+        ],
+        "target_url": "",
+    },
+    {
+        "name": "Перевірка покупців ФГВ-портфелів",
+        "priority": "medium",
+        "description": "Знайти ФК які купували портфелі ФГВ з 2020 року. Перевірити через судовий реєстр "
+                       "чи ця ФК подавала позови / виконавчі написи. Якщо ні — портфель може бути на перепродажі.",
+        "keywords": [],
+        "target_url": "https://reyestr.court.gov.ua",
+    },
+    {
+        "name": "Моніторинг великих ФК на перепродаж",
+        "priority": "medium",
+        "description": "Великі ФК-колектори (Форінт, Укрборг, тощо) іноді перепродають частини портфелів "
+                       "іншим ФК. Відстежувати через АМКУ, суди, та прямий контакт.",
+        "keywords": [],
+        "target_url": "",
     },
 ]
 
