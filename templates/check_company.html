@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Перевірка юридичної особи</h2>
+
+<div class="card">
+    <p>Перевірка статусу компанії з відкритих джерел: ЄДР, реєстр судових рішень, виконавчі провадження, банкрутство.</p>
+    <form method="post">
+        <div class="form-row">
+            <div>
+                <label>Код ЄДРПОУ</label>
+                <input type="text" name="edrpou" placeholder="напр. 12345678" required>
+            </div>
+            <div>
+                <label>Назва компанії (необов'язково)</label>
+                <input type="text" name="name" placeholder="ТОВ «Назва»">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Перевірити</button>
+    </form>
+</div>
+
+{% if result %}
+<div class="card" style="border-left: 3px solid {% if result.risk_level == 'high' %}#e74c3c{% elif result.risk_level == 'medium' %}#f39c12{% else %}#27ae60{% endif %};">
+    <h2>Результат перевірки: {{ result.name or result.edrpou }}</h2>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="number">{{ result.edrpou }}</div>
+            <div class="label">ЄДРПОУ</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">
+                {% if result.status == 'active' %}<span style="color:#27ae60">Активна</span>
+                {% elif result.status == 'in_liquidation' %}<span style="color:#f39c12">Ліквідація</span>
+                {% elif result.status == 'bankrupt' %}<span style="color:#e74c3c">Банкрут</span>
+                {% elif result.status == 'terminated' %}<span style="color:#e74c3c">Припинена</span>
+                {% else %}<span style="color:#999">Невідомо</span>{% endif %}
+            </div>
+            <div class="label">Статус</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">
+                {% if result.risk_level == 'high' %}<span class="tag tag-red">Високий</span>
+                {% elif result.risk_level == 'medium' %}<span class="tag tag-orange">Середній</span>
+                {% else %}<span class="tag tag-green">Низький</span>{% endif %}
+            </div>
+            <div class="label">Рівень ризику</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ result.court_cases_count }}</div>
+            <div class="label">Судових справ</div>
+        </div>
+    </div>
+
+    {% if result.warnings %}
+    <div style="background:#fff3cd;border:1px solid #ffc107;padding:0.8rem;border-radius:4px;margin-bottom:1rem;">
+        <strong>Попередження:</strong>
+        <ul style="margin:0.5rem 0 0;">
+            {% for w in result.warnings %}
+            <li>{{ w }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <table>
+        <tr><th>Показник</th><th>Значення</th></tr>
+        <tr><td>Назва</td><td>{{ result.name or '—' }}</td></tr>
+        <tr><td>Адреса</td><td>{{ result.address or '—' }}</td></tr>
+        {% if result.bankruptcy_info %}
+        <tr><td>Банкрутство</td><td style="color:#e74c3c"><strong>{{ result.bankruptcy_info }}</strong></td></tr>
+        {% endif %}
+        <tr><td>Виконавчих проваджень</td><td>{{ result.enforcement_count }}</td></tr>
+        <tr><td>Перевірені джерела</td><td>{{ result.sources_checked|join(', ') }}</td></tr>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

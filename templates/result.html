@@ -1,4 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
-<p>{{ result }}</p>
+<h2>Результат пошуку суду</h2>
+<table border="1" cellpadding="6" cellspacing="0">
+    <tr><th>Область</th><td>{{ oblast }}</td></tr>
+    <tr><th>Район</th><td>{{ district }}</td></tr>
+    <tr><th>Населений пункт</th><td>{{ settlement }}</td></tr>
+</table>
+
+<div class="card" style="margin-top:1rem;border-left:3px solid #3498db;">
+    <h2>Знайдений суд</h2>
+    <table>
+        <tr><th>Назва суду</th><td><strong>{{ court.court_name }}</strong></td></tr>
+        {% if court.court_code %}<tr><th>Код суду</th><td>{{ court.court_code }}</td></tr>{% endif %}
+        {% if court.address %}<tr><th>Адреса</th><td>{{ court.address }}</td></tr>{% endif %}
+        {% if court.instance %}<tr><th>Інстанція</th><td>{{ court.instance }}</td></tr>{% endif %}
+        {% if court.status %}<tr><th>Статус</th><td>{{ court.status }}</td></tr>{% endif %}
+        <tr><th>Джерело</th><td>{{ court.source }}</td></tr>
+        {% if court.url %}<tr><th>Посилання</th><td><a href="{{ court.url }}" target="_blank" rel="noopener">{{ court.url }}</a></td></tr>{% endif %}
+    </table>
+</div>
+
+<br>
+<a href="/address-search">&larr; Новий пошук</a>
 {% endblock %}

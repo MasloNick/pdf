@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Аналіз портфеля</h2>
+
+<div class="card">
+    <p>Завантажте CSV-файл з даними портфеля для повного аналізу.
+       Підтримуються колонки (українською або англійською):</p>
+    <table>
+        <tr><th>Поле</th><th>Можливі назви колонок</th></tr>
+        <tr><td>Тип боржника</td><td><code>тип</code>, <code>debtor_type</code>, <code>тип боржника</code></td></tr>
+        <tr><td>Назва / ПІБ</td><td><code>назва</code>, <code>name</code>, <code>піб</code>, <code>боржник</code></td></tr>
+        <tr><td>ЄДРПОУ</td><td><code>єдрпоу</code>, <code>edrpou</code>, <code>код</code></td></tr>
+        <tr><td>Загальна сума боргу</td><td><code>загальна сума</code>, <code>total</code>, <code>сума боргу</code>, <code>борг</code></td></tr>
+        <tr><td>Тіло кредиту</td><td><code>тіло</code>, <code>principal</code>, <code>основний борг</code></td></tr>
+        <tr><td>Відсотки</td><td><code>відсотки</code>, <code>interest</code>, <code>проценти</code></td></tr>
+        <tr><td>Пеня / штрафи</td><td><code>пеня</code>, <code>penalty</code>, <code>штраф</code></td></tr>
+        <tr><td>Регіон</td><td><code>регіон</code>, <code>region</code>, <code>область</code></td></tr>
+    </table>
+    <br>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".csv" required><br><br>
+        <label>Запитувана ціна (грн, якщо відома):</label>
+        <input type="number" name="asking_price" step="0.01" placeholder="напр. 500000" style="max-width:300px"><br><br>
+        <button type="submit" class="btn btn-primary">Аналізувати портфель</button>
+    </form>
+</div>
+{% endblock %}

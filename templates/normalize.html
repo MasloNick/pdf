@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
+<h2>Нормалізація CSV</h2>
+<p>Завантажте CSV-файл — всі текстові поля буде нормалізовано (перша літера кожного слова стане великою).</p>
 <form method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".csv" required><br>
-    <button type="submit">Normalize</button>
+    <input type="file" name="file" accept=".csv" required><br><br>
+    <button type="submit">Нормалізувати</button>
 </form>
 {% endblock %}

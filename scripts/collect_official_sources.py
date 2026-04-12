@@ -312,32 +312,49 @@ class DecisionRegistry:
 
 
 class _AnchorExtractor(HTMLParser):
-    """HTML parser that extracts anchors."""
+    """HTML parser that extracts anchors.
+
+    Accumulates *all* text nodes inside an ``<a>`` element so that nested
+    tags (``<a href="…"><span>some</span> text</a>``) produce one entry
+    with the full link text instead of separate fragments.
+    """
 
     def __init__(self) -> None:
         super().__init__()
         self.links: List[Tuple[str, str]] = []
         self._current_href: Optional[str] = None
+        self._text_parts: List[str] = []
+
+    def _flush(self) -> None:
+        if self._current_href is not None:
+            text = " ".join("".join(self._text_parts).split()).strip()
+            if text:
+                self.links.append((text, self._current_href))
+        self._current_href = None
+        self._text_parts = []
 
     def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]):
         if tag.lower() != "a":
             return
+        # Flush any previous unclosed anchor before starting a new one.
+        if self._current_href is not None:
+            self._flush()
         href = None
         for key, value in attrs:
             if key.lower() == "href":
                 href = value
                 break
-        self._current_href = href
+        if href is not None:
+            self._current_href = href
+            self._text_parts = []
 
     def handle_endtag(self, tag: str):
         if tag.lower() == "a":
-            self._current_href = None
+            self._flush()
 
     def handle_data(self, data: str):
-        if self._current_href:
-            text = data.strip()
-            if text:
-                self.links.append((text, self._current_href))
+        if self._current_href is not None:
+            self._text_parts.append(data)
 
 
 class OfficialSourceCollector:
