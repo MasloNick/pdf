@@ -18,6 +18,10 @@ venv/
 *.log
 .env
 
+# Runtime data
+data/
+*.db
+
 # IDE directories
 .vscode/
 .idea/
