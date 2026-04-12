@@ -121,6 +121,96 @@
 </div>
 
 <!-- Records preview -->
+<!-- Deep Scoring -->
+{% if scoring %}
+<div class="card" style="border-left: 4px solid {% if scoring.recommendation == 'BUY' %}#27ae60{% elif scoring.recommendation == 'CONSIDER' %}#f39c12{% else %}#e74c3c{% endif %};">
+    <h2>Глибокий скоринг портфеля</h2>
+    <div class="stats-grid">
+        <div class="stat-card" style="border:2px solid {% if scoring.overall_score >= 60 %}#27ae60{% elif scoring.overall_score >= 40 %}#f39c12{% else %}#e74c3c{% endif %}">
+            <div class="number">{{ scoring.overall_score }}/100</div>
+            <div class="label">Загальна оцінка ({{ scoring.overall_grade }})</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ fmt_uah(scoring.estimated_total_recovery) }}</div>
+            <div class="label">Очікуване стягнення ({{ (scoring.avg_recovery_rate * 100)|round(1) }}%)</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ fmt_uah(scoring.max_recommended_price) }}</div>
+            <div class="label">Макс. рекомендована ціна</div>
+        </div>
+        <div class="stat-card" style="border:2px solid {% if scoring.recommendation == 'BUY' %}#27ae60{% elif scoring.recommendation == 'CONSIDER' %}#f39c12{% else %}#e74c3c{% endif %}">
+            <div class="number" style="font-size:1.4rem;">
+                {% if scoring.recommendation == 'BUY' %}<span style="color:#27ae60">КУПУВАТИ</span>
+                {% elif scoring.recommendation == 'CONSIDER' %}<span style="color:#f39c12">РОЗГЛЯНУТИ</span>
+                {% else %}<span style="color:#e74c3c">ПРОПУСТИТИ</span>{% endif %}
+            </div>
+            <div class="label">Рекомендація</div>
+        </div>
+    </div>
+
+    <p><strong>{{ scoring.quality_label }}</strong> | {{ scoring.principal_quality }}</p>
+
+    {% if scoring.estimated_profit_at_price %}
+    <p>Очікуваний прибуток при вказаній ціні: <strong style="color:{% if scoring.estimated_profit_at_price > 0 %}#27ae60{% else %}#e74c3c{% endif %}">{{ fmt_uah(scoring.estimated_profit_at_price) }}</strong></p>
+    {% endif %}
+
+    <table>
+        <tr><th>Показник</th><th>Значення</th></tr>
+        <tr><td>Витрати на стягнення (оцінка)</td><td>{{ fmt_uah(scoring.collection_cost_estimate) }} ({{ scoring.total_records }} боржн. × 2000 грн)</td></tr>
+        <tr><td>Середній борг на боржника</td><td>{{ fmt_uah(scoring.avg_debt_per_debtor) }}</td></tr>
+    </table>
+
+    {% if scoring.risk_flags %}
+    <div style="background:#fff3cd;border:1px solid #ffc107;padding:0.6rem;border-radius:4px;margin-top:0.8rem;">
+        <strong>Ризики:</strong>
+        <ul style="margin:0.3rem 0 0;">
+            {% for flag in scoring.risk_flags %}<li>{{ flag }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if scoring.recommendation_reasons %}
+    <h3 style="font-size:0.95rem;margin-top:1rem;">Обґрунтування</h3>
+    <ul style="font-size:0.85rem;">
+        {% for r in scoring.recommendation_reasons %}<li>{{ r }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+
+    <!-- Grade distribution -->
+    {% if scoring.grade_distribution %}
+    <h3 style="font-size:0.95rem;">Розподіл за оцінками</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        {% for grade, count in scoring.grade_distribution.items() %}
+        <div style="text-align:center;padding:0.5rem 1rem;border-radius:4px;
+            {% if grade == 'A' %}background:#d4edda;{% elif grade == 'B' %}background:#d1ecf1;{% elif grade == 'C' %}background:#fff3cd;{% elif grade == 'D' %}background:#fde8d0;{% else %}background:#f8d7da;{% endif %}">
+            <div style="font-size:1.3rem;font-weight:bold;">{{ grade }}</div>
+            <div style="font-size:0.8rem;">{{ count }} боржн.</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Top debtors -->
+    {% if scoring.top_debtors %}
+    <h3 style="font-size:0.95rem;margin-top:1rem;">ТОП-10 боржників</h3>
+    <table>
+        <tr><th>#</th><th>Назва</th><th>Борг</th><th>Тіло</th><th>Оцінка</th><th>Грейд</th><th>Очік. стягнення</th></tr>
+        {% for d in scoring.top_debtors %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ d.name or '—' }}</td>
+            <td>{{ fmt_uah(d.debt) }}</td>
+            <td>{{ fmt_uah(d.principal) }}</td>
+            <td>{{ d.score }}/100</td>
+            <td><span class="tag {% if d.grade == 'A' %}tag-green{% elif d.grade == 'B' %}tag-blue{% elif d.grade == 'C' %}tag-orange{% else %}tag-red{% endif %}">{{ d.grade }}</span></td>
+            <td>{{ fmt_uah(d.recovery) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</div>
+{% endif %}
+
 {% if records %}
 <div class="card">
     <h2>Перші {{ records|length }} записів (з {{ total_records }})</h2>
@@ -158,6 +248,27 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Export buttons -->
+<div class="card" style="border-left: 3px solid #3498db;">
+    <h2>Вивантажити аналітику</h2>
+    <p>Скачати повний звіт з усіма даними, скорингом, рекомендаціями та посиланнями:</p>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <form method="post" action="/export/portfolio" enctype="multipart/form-data" style="display:inline;">
+            <input type="hidden" name="format" value="json">
+            <input type="hidden" name="asking_price" value="">
+            <input type="file" name="file" accept=".csv" required style="display:none" id="export-json-file">
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('export-json-file').click()">JSON (повний звіт)</button>
+        </form>
+        <form method="post" action="/export/portfolio" enctype="multipart/form-data" style="display:inline;">
+            <input type="hidden" name="format" value="csv">
+            <input type="hidden" name="asking_price" value="">
+            <input type="file" name="file" accept=".csv" required style="display:none" id="export-csv-file">
+            <button type="button" class="btn btn-success" onclick="document.getElementById('export-csv-file').click()">CSV (для Excel/Google Sheets)</button>
+        </form>
+    </div>
+    <p style="font-size:0.85rem;color:#888;margin-top:0.5rem;">Для відправки по пошті/месенджерах — скачайте файл та прикріпіть до повідомлення.</p>
+</div>
 
 <br>
 <a href="/portfolio">&larr; Завантажити інший файл</a>

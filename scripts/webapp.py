@@ -30,6 +30,7 @@ from scripts.analysis.portfolio import (  # noqa: E402
     import_portfolio_csv,
 )
 from scripts.analysis.pricing import recommend_price, compare_price_to_market  # noqa: E402
+from scripts.analysis.scoring import score_portfolio  # noqa: E402
 from scripts.scrapers.banks import (  # noqa: E402
     BANK_REGISTRY,
     AUCTION_PLATFORMS,
@@ -167,11 +168,16 @@ def portfolio_analysis():
             avg_debt=summary.avg_debt,
         )
 
+        # Deep scoring
+        asking = float(request.form.get("asking_price", 0) or 0)
+        scoring = score_portfolio(records, asking_price=asking)
+
         return render_template(
             "portfolio_result.html",
             summary=summary.to_dict(),
             pricing=pricing.to_dict(),
-            records=records[:100],  # Show first 100 for preview
+            scoring=scoring.to_dict(),
+            records=records[:100],
             total_records=len(records),
         )
 
@@ -232,10 +238,11 @@ def auctions_scan():
     # Try bank websites
     try:
         from scripts.scrapers.banks import BankSiteScraper
+        from scripts.scrapers.parallel import scan_all_banks_parallel
         scraper = BankSiteScraper(timeout=10, max_retries=1)
-        bank_items = scraper.scan_all_banks()
+        bank_items, bank_errors = scan_all_banks_parallel(BANK_REGISTRY, scraper, max_workers=10)
         results["banks"] = bank_items
-        results["errors"].extend(scraper.errors)
+        results["errors"].extend(bank_errors)
     except Exception as exc:
         results["errors"].append(f"Banks: {exc}")
 
@@ -330,6 +337,101 @@ def monitoring():
         dgf_banks=DGF_LIQUIDATED_BANKS,
         search_keywords=SEARCH_KEYWORDS,
     )
+
+
+# ============================================================================
+# Export — вивантаження аналітики у CSV/JSON з усіма даними
+# ============================================================================
+
+@app.route("/export/portfolio", methods=["POST"])
+def export_portfolio():
+    """Re-analyse uploaded CSV and return full analytics as JSON or CSV."""
+    file = request.files.get("file")
+    fmt = request.form.get("format", "json")
+    if not file or not file.filename:
+        flash("Оберіть CSV-файл.")
+        return redirect(url_for("portfolio_analysis"))
+    try:
+        csv_text = file.stream.read().decode("utf-8")
+    except UnicodeDecodeError:
+        flash("Помилка кодування файлу.")
+        return redirect(url_for("portfolio_analysis"))
+
+    records, _ = import_portfolio_csv(csv_text)
+    if not records:
+        flash("Порожній файл.")
+        return redirect(url_for("portfolio_analysis"))
+
+    summary = analyze_portfolio(records)
+    asking = float(request.form.get("asking_price", 0) or 0)
+    scoring = score_portfolio(records, asking_price=asking)
+    pricing = recommend_price(
+        total_debt=summary.total_debt,
+        portfolio_type="physical" if summary.physical_count > summary.legal_count else "legal",
+        principal_ratio=summary.principal_ratio,
+        num_debtors=summary.total_records,
+        avg_debt=summary.avg_debt,
+    )
+
+    report = {
+        "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "summary": summary.to_dict(),
+        "scoring": scoring.to_dict(),
+        "pricing": pricing.to_dict(),
+        "records_count": len(records),
+    }
+
+    if fmt == "csv":
+        output = io.StringIO()
+        # Summary sheet as CSV
+        w = csv.writer(output)
+        w.writerow(["=== АНАЛІТИКА ПОРТФЕЛЯ ==="])
+        w.writerow(["Дата", report["generated_at"]])
+        w.writerow(["Всього записів", summary.total_records])
+        w.writerow(["Загальний борг", summary.total_debt])
+        w.writerow(["Тіло", summary.total_principal])
+        w.writerow(["Відсотки", summary.total_interest])
+        w.writerow(["Пеня", summary.total_penalty])
+        w.writerow(["Частка тіла", f"{summary.principal_ratio*100:.1f}%"])
+        w.writerow(["Фіз.осіб", summary.physical_count])
+        w.writerow(["Юр.осіб", summary.legal_count])
+        w.writerow(["Середня сума", summary.avg_debt])
+        w.writerow(["Медіана", summary.median_debt])
+        w.writerow([])
+        w.writerow(["=== СКОРИНГ ==="])
+        w.writerow(["Оцінка", f"{scoring.overall_score}/100 ({scoring.overall_grade})"])
+        w.writerow(["Якість", scoring.quality_label])
+        w.writerow(["Рекомендація", scoring.recommendation])
+        w.writerow(["Очікуване стягнення", scoring.estimated_total_recovery])
+        w.writerow(["Макс. рекомендована ціна", scoring.max_recommended_price])
+        for r in scoring.recommendation_reasons:
+            w.writerow(["", r])
+        w.writerow([])
+        w.writerow(["=== РЕКОМЕНДОВАНА ЦІНА ==="])
+        w.writerow(["Мін", pricing.recommended_price_low, f"{pricing.price_pct_low}%"])
+        w.writerow(["Сер", pricing.recommended_price_mid, f"{pricing.price_pct_mid}%"])
+        w.writerow(["Макс", pricing.recommended_price_high, f"{pricing.price_pct_high}%"])
+        w.writerow([])
+        w.writerow(["=== ТОП БОРЖНИКІВ ==="])
+        w.writerow(["Назва", "Борг", "Тіло", "Оцінка", "Грейд", "Очік.стягнення"])
+        for d in scoring.top_debtors:
+            w.writerow([d["name"], d["debt"], d["principal"], d["score"], d["grade"], d["recovery"]])
+
+        return send_file(
+            io.BytesIO(output.getvalue().encode("utf-8-sig")),
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name="portfolio_analytics.csv",
+        )
+    else:
+        import json as json_mod
+        data = json_mod.dumps(report, ensure_ascii=False, indent=2, default=str)
+        return send_file(
+            io.BytesIO(data.encode("utf-8")),
+            mimetype="application/json",
+            as_attachment=True,
+            download_name="portfolio_analytics.json",
+        )
 
 
 # ============================================================================

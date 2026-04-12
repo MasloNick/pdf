@@ -19,6 +19,8 @@
     <br>
     <form method="post" enctype="multipart/form-data">
         <input type="file" name="file" accept=".csv" required><br><br>
+        <label>Запитувана ціна (грн, якщо відома):</label>
+        <input type="number" name="asking_price" step="0.01" placeholder="напр. 500000" style="max-width:300px"><br><br>
         <button type="submit" class="btn btn-primary">Аналізувати портфель</button>
     </form>
 </div>
