@@ -5,84 +5,184 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NPL Portfolio Platform</title>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #f5f6fa; color: #2c3e50; }
-        header { background: #1a252f; color: #fff; padding: 0.7rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
-        header h1 { margin: 0; font-size: 1.2rem; }
-        header h1 a { color: #fff; text-decoration: none; }
-        header .badge { background: #27ae60; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; }
-        nav { background: #2c3e50; padding: 0; overflow-x: auto; white-space: nowrap; }
-        nav a { color: #bdc3c7; text-decoration: none; padding: 0.6rem 1rem; display: inline-block; font-size: 0.88rem; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        nav a:hover, nav a.active { color: #fff; border-bottom-color: #3498db; background: rgba(255,255,255,0.05); }
-        main { max-width: 1200px; margin: 1.2rem auto; padding: 0 1.2rem; }
-        .flash { background: #fff3cd; border: 1px solid #ffc107; padding: 0.6rem 1rem; margin-bottom: 1rem; border-radius: 4px; color: #856404; }
-        .flash.error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
-        .card { background: #fff; border-radius: 8px; padding: 1.2rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .card h2 { margin-top: 0; font-size: 1.15rem; color: #2c3e50; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-        .stat-card { background: #fff; border-radius: 8px; padding: 1rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .stat-card .number { font-size: 1.8rem; font-weight: bold; color: #2c3e50; }
-        .stat-card .label { font-size: 0.85rem; color: #7f8c8d; margin-top: 4px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-        th { background: #f8f9fa; font-weight: 600; color: #555; }
-        tr:hover { background: #f8f9fa; }
-        .btn { display: inline-block; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; cursor: pointer; border: none; }
-        .btn-primary { background: #3498db; color: #fff; }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-success { background: #27ae60; color: #fff; }
-        .btn-success:hover { background: #219a52; }
-        .btn-warning { background: #f39c12; color: #fff; }
-        .btn-danger { background: #e74c3c; color: #fff; }
-        .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 500; }
-        .tag-green { background: #d4edda; color: #155724; }
-        .tag-red { background: #f8d7da; color: #721c24; }
-        .tag-orange { background: #fff3cd; color: #856404; }
-        .tag-blue { background: #d1ecf1; color: #0c5460; }
-        .tag-gray { background: #e2e3e5; color: #383d41; }
-        form label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-        form input[type="text"], form input[type="number"], form select, form input[type="file"] {
-            padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; max-width: 400px; margin-bottom: 0.8rem; font-size: 0.9rem;
+        :root {
+            --bg: #0f1117;
+            --bg2: #1a1d27;
+            --bg3: #242733;
+            --surface: #1e2130;
+            --surface2: #262a3a;
+            --border: #2d3148;
+            --text: #e4e6f0;
+            --text2: #8b8fa7;
+            --accent: #6366f1;
+            --accent2: #818cf8;
+            --green: #22c55e;
+            --green-bg: rgba(34,197,94,0.12);
+            --red: #ef4444;
+            --red-bg: rgba(239,68,68,0.12);
+            --orange: #f59e0b;
+            --orange-bg: rgba(245,158,11,0.12);
+            --blue: #3b82f6;
+            --blue-bg: rgba(59,130,246,0.12);
+            --radius: 10px;
         }
-        form input[type="checkbox"] { margin-right: 6px; }
-        .form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* === SIDEBAR === */
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 240px; background: var(--bg2); border-right: 1px solid var(--border); padding: 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100; }
+        .sidebar .logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
+        .sidebar .logo a { color: var(--text); text-decoration: none; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+        .sidebar .logo span { display: inline-block; background: var(--accent); color: #fff; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; text-transform: uppercase; letter-spacing: 1px; }
+        .sidebar .nav-group { padding: 12px 0; }
+        .sidebar .nav-label { padding: 6px 20px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); font-weight: 600; }
+        .sidebar a { display: flex; align-items: center; gap: 10px; padding: 9px 20px; color: var(--text2); text-decoration: none; font-size: 0.87rem; transition: all 0.15s; border-left: 3px solid transparent; }
+        .sidebar a:hover { background: var(--surface); color: var(--text); border-left-color: var(--accent); }
+        .sidebar a .icon { width: 18px; text-align: center; font-size: 0.95rem; }
+        .sidebar .divider { height: 1px; background: var(--border); margin: 4px 16px; }
+
+        /* === MAIN === */
+        .main-content { margin-left: 240px; flex: 1; min-height: 100vh; }
+        .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; backdrop-filter: blur(8px); }
+        .topbar h2 { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+        .topbar .time { font-size: 0.8rem; color: var(--text2); }
+        main { padding: 24px 28px; max-width: 1400px; }
+
+        /* === CARDS === */
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+        .card h2 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+        .card h3 { font-size: 0.9rem; font-weight: 600; color: var(--text2); margin: 14px 0 8px; }
+
+        /* === STATS === */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+        .stat-card .number { font-size: 1.6rem; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+        .stat-card .label { font-size: 0.78rem; color: var(--text2); margin-top: 4px; }
+
+        /* === TABLE === */
+        table { border-collapse: collapse; width: 100%; }
+        th, td { padding: 10px 14px; text-align: left; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+        th { color: var(--text2); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg3); }
+        tr:hover { background: rgba(99,102,241,0.04); }
+        td a { color: var(--accent2); }
+        td a:hover { color: var(--accent); text-decoration: underline; }
+
+        /* === BUTTONS === */
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+        .btn-success { background: var(--green); color: #fff; }
+        .btn-success:hover { opacity: 0.9; }
+        .btn-warning { background: var(--orange); color: #000; }
+        .btn-warning:hover { opacity: 0.9; }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* === TAGS === */
+        .tag { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .tag-green { background: var(--green-bg); color: var(--green); }
+        .tag-red { background: var(--red-bg); color: var(--red); }
+        .tag-orange { background: var(--orange-bg); color: var(--orange); }
+        .tag-blue { background: var(--blue-bg); color: var(--blue); }
+        .tag-gray { background: rgba(139,143,167,0.12); color: var(--text2); }
+
+        /* === FORMS === */
+        form label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.85rem; color: var(--text2); }
+        form input[type="text"], form input[type="number"], form select, form input[type="file"] {
+            padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; width: 100%; max-width: 400px;
+            margin-bottom: 12px; font-size: 0.88rem; background: var(--bg3); color: var(--text); outline: none; transition: border 0.15s;
+        }
+        form input:focus, form select:focus { border-color: var(--accent); }
+        form input[type="checkbox"] { margin-right: 8px; accent-color: var(--accent); }
+        form input[type="file"] { padding: 8px; }
+
+        /* === LAYOUT === */
+        .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
         .form-row > div { flex: 1; min-width: 200px; }
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
-        .progress-bar { height: 8px; background: #ecf0f1; border-radius: 4px; overflow: hidden; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* === MISC === */
+        .flash { background: var(--orange-bg); border: 1px solid rgba(245,158,11,0.3); color: var(--orange); padding: 12px 16px; margin-bottom: 16px; border-radius: 8px; font-size: 0.88rem; }
+        .flash.error { background: var(--red-bg); border-color: rgba(239,68,68,0.3); color: var(--red); }
+        .progress-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
         .progress-bar .fill { height: 100%; border-radius: 4px; }
-        a { color: #3498db; }
-        a:hover { color: #2980b9; }
+        a { color: var(--accent2); text-decoration: none; }
+        a:hover { color: var(--accent); }
+        code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-size: 0.83rem; color: var(--accent2); }
+
+        /* === MOBILE === */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .mobile-nav { display: block; background: var(--bg2); padding: 8px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--border); }
+            .mobile-nav a { color: var(--text2); padding: 8px 12px; display: inline-block; font-size: 0.82rem; }
+            .mobile-nav a:hover { color: var(--text); }
+        }
+        @media (min-width: 769px) { .mobile-nav { display: none; } }
     </style>
 </head>
 <body>
-    <header>
-        <h1><a href="/">NPL Portfolio Platform</a><span class="badge">beta</span></h1>
-    </header>
-    <nav>
-        <a href="/">Дашборд</a>
-        <a href="/portfolio">Аналіз портфеля</a>
-        <a href="/auctions">Торги</a>
-        <a href="/auctions/scan">Сканування</a>
-        <a href="/pricing">Калькулятор ціни</a>
-        <a href="/compare">Порівняння</a>
-        <a href="/check-company">Перевірка компанії</a>
-        <a href="/bulk-check">Масова перевірка</a>
-        <a href="/market">Ринок NPL</a>
-        <a href="/monitoring">Моніторинг</a>
-        <a href="/official-sources">Офіційні джерела</a>
-        <a href="/address-search">Пошук суду</a>
-        <a href="/courts">База судів</a>
-    </nav>
-    <main>
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for msg in messages %}
-            <div class="flash">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-    </main>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo">
+                <a href="/">NPL Platform <span>beta</span></a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-label">Головне</div>
+                <a href="/"><span class="icon">&#9632;</span> Дашборд</a>
+                <a href="/portfolio"><span class="icon">&#9776;</span> Аналіз портфеля</a>
+                <a href="/compare"><span class="icon">&#8646;</span> Порівняння</a>
+            </div>
+            <div class="divider"></div>
+            <div class="nav-group">
+                <div class="nav-label">Торги</div>
+                <a href="/auctions"><span class="icon">&#9733;</span> Список торгів</a>
+                <a href="/auctions/scan"><span class="icon">&#8635;</span> Сканування</a>
+                <a href="/monitoring"><span class="icon">&#9673;</span> Моніторинг</a>
+                <a href="/market"><span class="icon">&#9650;</span> Ринок NPL</a>
+            </div>
+            <div class="divider"></div>
+            <div class="nav-group">
+                <div class="nav-label">Інструменти</div>
+                <a href="/pricing"><span class="icon">&#8364;</span> Калькулятор ціни</a>
+                <a href="/check-company"><span class="icon">&#10004;</span> Перевірка компанії</a>
+                <a href="/bulk-check"><span class="icon">&#9881;</span> Масова перевірка</a>
+                <a href="/address-search"><span class="icon">&#9878;</span> Пошук суду</a>
+                <a href="/courts"><span class="icon">&#9959;</span> База судів</a>
+            </div>
+            <div class="divider"></div>
+            <div class="nav-group">
+                <div class="nav-label">Дані</div>
+                <a href="/official-sources"><span class="icon">&#9830;</span> Офіційні джерела</a>
+                <a href="/batch"><span class="icon">&#9998;</span> Пакетна обробка</a>
+                <a href="/normalize"><span class="icon">&#8644;</span> Нормалізація CSV</a>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <div class="mobile-nav">
+                <a href="/">Дашборд</a>
+                <a href="/portfolio">Портфель</a>
+                <a href="/auctions/scan">Скан</a>
+                <a href="/pricing">Ціна</a>
+                <a href="/check-company">Перевірка</a>
+                <a href="/monitoring">Моніторинг</a>
+            </div>
+            <main>
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for msg in messages %}
+                    <div class="flash">{{ msg }}</div>
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
 </body>
 </html>
