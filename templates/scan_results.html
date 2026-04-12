@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Результати сканування</h2>
+
+{% if results.errors %}
+<div class="card" style="border-left: 3px solid #e74c3c;">
+    <h2>Помилки</h2>
+    <ul>
+        {% for err in results.errors %}
+        <li style="color:#721c24;font-size:0.9rem;">{{ err }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ results.setam|length }}</div>
+        <div class="label">SETAM</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ results.prozorro|length }}</div>
+        <div class="label">ProZorro</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ results.dgf|length }}</div>
+        <div class="label">ФГВ</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ results.banks|length }}</div>
+        <div class="label">Банківські сайти</div>
+    </div>
+</div>
+
+{% if results.setam %}
+<div class="card">
+    <h2>SETAM ({{ results.setam|length }})</h2>
+    <table>
+        <tr><th>Назва</th><th>Продавець</th><th>Тип</th><th>Борг</th><th>Ціна</th><th>Статус</th></tr>
+        {% for a in results.setam %}
+        <tr>
+            <td>{% if a.url %}<a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title[:70] }}</a>{% else %}{{ a.title[:70] }}{% endif %}</td>
+            <td>{{ a.seller or '—' }}</td>
+            <td>{{ a.portfolio_type or '—' }}</td>
+            <td>{{ fmt_uah(a.total_debt) }}</td>
+            <td>{{ fmt_uah(a.start_price) }}</td>
+            <td><span class="tag tag-green">{{ a.status }}</span></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+{% if results.prozorro %}
+<div class="card">
+    <h2>ProZorro.Sale ({{ results.prozorro|length }})</h2>
+    <table>
+        <tr><th>Назва</th><th>Продавець</th><th>Тип</th><th>Борг</th><th>Ціна</th><th>Статус</th></tr>
+        {% for a in results.prozorro %}
+        <tr>
+            <td>{% if a.url %}<a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title[:70] }}</a>{% else %}{{ a.title[:70] }}{% endif %}</td>
+            <td>{{ a.seller or '—' }}</td>
+            <td>{{ a.portfolio_type or '—' }}</td>
+            <td>{{ fmt_uah(a.total_debt) }}</td>
+            <td>{{ fmt_uah(a.start_price) }}</td>
+            <td><span class="tag tag-green">{{ a.status }}</span></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+{% if results.dgf %}
+<div class="card">
+    <h2>ФГВ / Фонд гарантування вкладів ({{ results.dgf|length }})</h2>
+    <ul>
+        {% for item in results.dgf %}
+        <li><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if results.banks %}
+<div class="card">
+    <h2>Банківські сайти ({{ results.banks|length }})</h2>
+    <table>
+        <tr><th>Банк</th><th>Тип</th><th>Назва</th><th>Сторінка</th></tr>
+        {% for item in results.banks %}
+        <tr>
+            <td><strong>{{ item.bank }}</strong></td>
+            <td><span class="tag tag-gray">{{ item.bank_type }}</span></td>
+            <td><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title[:70] }}</a></td>
+            <td>{{ item.page_type }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<br>
+<a href="/auctions">&larr; До списку торгів</a>
+{% endblock %}

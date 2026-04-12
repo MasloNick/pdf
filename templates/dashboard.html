@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Дашборд</h2>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ stats.total_auctions }}</div>
+        <div class="label">Торгів у базі</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.active }}</div>
+        <div class="label">Активних</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ fmt_uah(stats.total_debt) }}</div>
+        <div class="label">Загальний борг</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.banks_tracked }}</div>
+        <div class="label">Банків/МФО відстежується</div>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="card">
+        <h2>Швидкі дії</h2>
+        <p><a href="/auctions/scan" class="btn btn-primary">Сканувати торги</a></p>
+        <p><a href="/portfolio" class="btn btn-success">Аналіз портфеля (CSV)</a></p>
+        <p><a href="/pricing" class="btn btn-warning">Калькулятор ціни</a></p>
+        <p><a href="/check-company" class="btn btn-primary">Перевірка юрособи</a></p>
+    </div>
+    <div class="card">
+        <h2>Платформи торгів</h2>
+        <ul>
+            <li><a href="https://setam.net.ua" target="_blank" rel="noopener">SETAM</a> — Державне підприємство</li>
+            <li><a href="https://prozorro.sale" target="_blank" rel="noopener">ProZorro.Продажі</a> — Державна платформа</li>
+            <li><a href="https://fg.gov.ua" target="_blank" rel="noopener">ФГВ</a> — Фонд гарантування вкладів</li>
+            <li><strong>Закриті банківські тендери</strong> — Креді Агріколь, ПУМБ, Райффайзен та ін.</li>
+        </ul>
+        <p><a href="/monitoring">Детальніше &rarr;</a></p>
+    </div>
+</div>
+
+{% if auctions %}
+<div class="card">
+    <h2>Останні торги в базі</h2>
+    <table>
+        <tr>
+            <th>Джерело</th>
+            <th>Назва</th>
+            <th>Продавець</th>
+            <th>Тип</th>
+            <th>Загальний борг</th>
+            <th>Стартова ціна</th>
+            <th>Статус</th>
+        </tr>
+        {% for a in auctions %}
+        <tr>
+            <td><span class="tag tag-blue">{{ a.source }}</span></td>
+            <td>{% if a.url %}<a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title[:80] }}</a>{% else %}{{ a.title[:80] }}{% endif %}</td>
+            <td>{{ a.seller or '—' }}</td>
+            <td>{{ a.portfolio_type or '—' }}</td>
+            <td>{{ fmt_uah(a.total_debt) }}</td>
+            <td>{{ fmt_uah(a.start_price) }}</td>
+            <td>
+                {% if a.status == 'active' %}<span class="tag tag-green">активний</span>
+                {% elif a.status == 'completed' %}<span class="tag tag-gray">завершений</span>
+                {% else %}<span class="tag tag-orange">{{ a.status }}</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p><a href="/auctions">Всі торги &rarr;</a></p>
+</div>
+{% endif %}
+{% endblock %}

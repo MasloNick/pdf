@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Результати аналізу портфеля</h2>
+
+<!-- Summary stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ summary.total_records }}</div>
+        <div class="label">Всього записів</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ fmt_uah(summary.total_debt) }}</div>
+        <div class="label">Загальний борг</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ fmt_uah(summary.total_principal) }}</div>
+        <div class="label">Тіло кредиту</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ fmt_uah(summary.avg_debt) }}</div>
+        <div class="label">Середня сума</div>
+    </div>
+</div>
+
+<div class="two-col">
+    <!-- Left column: Breakdown -->
+    <div>
+        <div class="card">
+            <h2>Структура портфеля</h2>
+            <table>
+                <tr><th>Показник</th><th>Значення</th></tr>
+                <tr><td>Фізичні особи</td><td>{{ summary.physical_count }} (борг: {{ fmt_uah(summary.phys_total_debt) }})</td></tr>
+                <tr><td>Юридичні особи</td><td>{{ summary.legal_count }} (борг: {{ fmt_uah(summary.legal_total_debt) }})</td></tr>
+                <tr><td>Загальне тіло</td><td>{{ fmt_uah(summary.total_principal) }}</td></tr>
+                <tr><td>Загальні відсотки</td><td>{{ fmt_uah(summary.total_interest) }}</td></tr>
+                <tr><td>Загальна пеня</td><td>{{ fmt_uah(summary.total_penalty) }}</td></tr>
+                <tr><td>Мін. борг</td><td>{{ fmt_uah(summary.min_debt) }}</td></tr>
+                <tr><td>Макс. борг</td><td>{{ fmt_uah(summary.max_debt) }}</td></tr>
+                <tr><td>Медіана</td><td>{{ fmt_uah(summary.median_debt) }}</td></tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Склад боргу</h2>
+            <table>
+                <tr>
+                    <td>Тіло</td>
+                    <td>
+                        <div class="progress-bar" style="width:200px;display:inline-block;vertical-align:middle;">
+                            <div class="fill" style="width:{{ (summary.principal_ratio * 100)|round }}%;background:#27ae60;"></div>
+                        </div>
+                        {{ (summary.principal_ratio * 100)|round(1) }}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Відсотки</td>
+                    <td>
+                        <div class="progress-bar" style="width:200px;display:inline-block;vertical-align:middle;">
+                            <div class="fill" style="width:{{ (summary.interest_ratio * 100)|round }}%;background:#f39c12;"></div>
+                        </div>
+                        {{ (summary.interest_ratio * 100)|round(1) }}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Пеня</td>
+                    <td>
+                        <div class="progress-bar" style="width:200px;display:inline-block;vertical-align:middle;">
+                            <div class="fill" style="width:{{ (summary.penalty_ratio * 100)|round }}%;background:#e74c3c;"></div>
+                        </div>
+                        {{ (summary.penalty_ratio * 100)|round(1) }}%
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right column: Pricing and ranges -->
+    <div>
+        <div class="card">
+            <h2>Рекомендація щодо ціни</h2>
+            <table>
+                <tr><th></th><th>% від боргу</th><th>Сума (грн)</th></tr>
+                <tr style="color:#27ae60"><td>Мінімум</td><td>{{ pricing.price_pct_low }}%</td><td>{{ fmt_uah(pricing.recommended_price_low) }}</td></tr>
+                <tr style="color:#f39c12;font-weight:bold"><td>Середня</td><td>{{ pricing.price_pct_mid }}%</td><td>{{ fmt_uah(pricing.recommended_price_mid) }}</td></tr>
+                <tr style="color:#e74c3c"><td>Максимум</td><td>{{ pricing.price_pct_high }}%</td><td>{{ fmt_uah(pricing.recommended_price_high) }}</td></tr>
+            </table>
+            {% if pricing.adjustments_applied %}
+            <h3 style="font-size:0.95rem;margin-top:1rem;">Коригування</h3>
+            <ul style="font-size:0.85rem;color:#666;">
+                {% for adj in pricing.adjustments_applied %}
+                <li>{{ adj }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+
+        {% if summary.debt_ranges %}
+        <div class="card">
+            <h2>Розподіл за сумою боргу</h2>
+            <table>
+                <tr><th>Діапазон</th><th>Кількість</th></tr>
+                {% for range_label, count in summary.debt_ranges.items() %}
+                <tr><td>{{ range_label }}</td><td>{{ count }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {% if summary.by_region %}
+        <div class="card">
+            <h2>За регіонами</h2>
+            <table>
+                <tr><th>Регіон</th><th>Кількість</th></tr>
+                {% for region, count in summary.by_region.items() %}
+                <tr><td>{{ region }}</td><td>{{ count }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Records preview -->
+{% if records %}
+<div class="card">
+    <h2>Перші {{ records|length }} записів (з {{ total_records }})</h2>
+    <div style="overflow-x:auto;">
+    <table>
+        <tr>
+            <th>#</th>
+            <th>Тип</th>
+            <th>Назва</th>
+            <th>Загальний борг</th>
+            <th>Тіло</th>
+            <th>Відсотки</th>
+            <th>Пеня</th>
+            <th>Регіон</th>
+        </tr>
+        {% for r in records %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+                {% if r.debtor_type in ('physical', 'фіз', 'фізична') %}
+                <span class="tag tag-blue">фіз</span>
+                {% else %}
+                <span class="tag tag-orange">юр</span>
+                {% endif %}
+            </td>
+            <td>{{ r.name or '—' }}</td>
+            <td>{{ fmt_uah(r.debt_total) }}</td>
+            <td>{{ fmt_uah(r.debt_principal) }}</td>
+            <td>{{ fmt_uah(r.debt_interest) }}</td>
+            <td>{{ fmt_uah(r.debt_penalty) }}</td>
+            <td>{{ r.region or '—' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    </div>
+</div>
+{% endif %}
+
+<br>
+<a href="/portfolio">&larr; Завантажити інший файл</a>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Калькулятор ціни NPL-портфеля</h2>
+
+<div class="card">
+    <form method="post">
+        <div class="form-row">
+            <div>
+                <label>Загальна сума боргу (грн)</label>
+                <input type="number" name="total_debt" step="0.01" placeholder="напр. 10000000" required>
+            </div>
+            <div>
+                <label>Запитувана ціна (грн, якщо є)</label>
+                <input type="number" name="asking_price" step="0.01" placeholder="напр. 500000">
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Тип портфеля</label>
+                <select name="portfolio_type">
+                    <option value="physical">Фізичні особи</option>
+                    <option value="legal">Юридичні особи</option>
+                    <option value="secured">Забезпечений (іпотека/авто)</option>
+                </select>
+            </div>
+            <div>
+                <label>Категорія боргу</label>
+                <select name="debt_category">
+                    <option value="fresh">Свіжий (до 1 року прострочки)</option>
+                    <option value="seasoned" selected>Середній (1-3 роки)</option>
+                    <option value="aged">Старий (3-5 р��ків)</option>
+                    <option value="very_old">Дуже старий (5+ років)</option>
+                    <option value="credit">Кредит (юр. особи)</option>
+                    <option value="overdraft">Овердрафт</option>
+                    <option value="receivables">Дебіторська заборгован��сть</option>
+                    <option value="mortgage">Іпотека</option>
+                    <option value="vehicle">Автокредит</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Частка тіла кредиту (%)</label>
+                <input type="number" name="principal_ratio" step="1" value="50" min="0" max="100">
+            </div>
+            <div>
+                <label>Кількість боржників</label>
+                <input type="number" name="num_debtors" value="100">
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Середня сума боргу (грн, 0 = автоматично)</label>
+                <input type="number" name="avg_debt" step="0.01" value="0">
+            </div>
+            <div>
+                <label>Тип прод��вця</label>
+                <select name="seller_type">
+                    <option value="state_bank">Державний банк</option>
+                    <option value="private_bank">Приватний банк</option>
+                    <option value="dgf">ФГВ</option>
+                    <option value="mfo">МФО</option>
+                    <option value="fc">Фінансова компанія</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div>
+                <label>Якість документації</label>
+                <select name="documentation">
+                    <option value="complete">Повна</option>
+                    <option value="partial" selected>Часткова</option>
+                    <option value="minimal">Мінімальна</option>
+                </select>
+            </div>
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary">Розрахувати</button>
+    </form>
+</div>
+
+{% if recommendation %}
+<div class="card" style="border-left: 3px solid #27ae60;">
+    <h2>Рекомендована ціна</h2>
+    <div class="stats-grid">
+        <div class="stat-card" style="border:2px solid #27ae60;">
+            <div class="number" style="color:#27ae60;">{{ fmt_uah(recommendation.recommended_price_low) }}</div>
+            <div class="label">Мінімум ({{ recommendation.price_pct_low }}%)</div>
+        </div>
+        <div class="stat-card" style="border:2px solid #f39c12;">
+            <div class="number" style="color:#f39c12;">{{ fmt_uah(recommendation.recommended_price_mid) }}</div>
+            <div class="label">Середня ({{ recommendation.price_pct_mid }}%)</div>
+        </div>
+        <div class="stat-card" style="border:2px solid #e74c3c;">
+            <div class="number" style="color:#e74c3c;">{{ fmt_uah(recommendation.recommended_price_high) }}</div>
+            <div class="label">Максимум ({{ recommendation.price_pct_high }}%)</div>
+        </div>
+    </div>
+
+    <h3 style="font-size:1rem;">Застосовані коригування</h3>
+    <ul style="font-size:0.88rem;color:#555;">
+        {% for adj in recommendation.adjustments_applied %}
+        <li>{{ adj }}</li>
+        {% endfor %}
+    </ul>
+
+    {% for note in recommendation.notes %}
+    <p style="font-size:0.88rem;color:#888;">{{ note }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if comparison %}
+<div class="card" style="border-left: 3px solid {{ comparison.color }};">
+    <h2>Порівняння з ринком</h2>
+    <table>
+        <tr><th>Показник</th><th>Значення</th></tr>
+        <tr><td>Запитувана ціна</td><td><strong>{{ fmt_uah(comparison.asking_price) }}</strong></td></tr>
+        <tr><td>Загальний борг</td><td>{{ fmt_uah(comparison.total_debt) }}</td></tr>
+        <tr><td>Ціна/борг</td><td><strong>{{ comparison.price_pct }}%</strong></td></tr>
+        <tr><td>Ринок: низ</td><td>{{ comparison.market_low_pct }}%</td></tr>
+        <tr><td>Ринок: середня</td><td>{{ comparison.market_mid_pct }}%</td></tr>
+        <tr><td>Ринок: верх</td><td>{{ comparison.market_high_pct }}%</td></tr>
+    </table>
+    <p style="font-size:1.2rem;margin-top:1rem;">
+        Вердикт:
+        {% if comparison.verdict == 'дешево' %}<span class="tag tag-green" style="font-size:1rem;">{{ comparison.verdict }}</span>
+        {% elif comparison.verdict == 'нижче ринку' %}<span class="tag tag-green" style="font-size:1rem;">{{ comparison.verdict }}</span>
+        {% elif comparison.verdict == 'ринкова ціна' %}<span class="tag tag-orange" style="font-size:1rem;">{{ comparison.verdict }}</span>
+        {% elif comparison.verdict == 'дорого' %}<span class="tag tag-red" style="font-size:1rem;">{{ comparison.verdict }}</span>
+        {% else %}<span class="tag tag-gray" style="font-size:1rem;">{{ comparison.verdict }}</span>{% endif %}
+    </p>
+</div>
+{% endif %}
+{% endblock %}

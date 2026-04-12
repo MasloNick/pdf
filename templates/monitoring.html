@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Моніторинг ринку NPL</h2>
+
+<!-- Platforms -->
+<div class="card">
+    <h2>Торгові платформи</h2>
+    <table>
+        <tr><th>Платформа</th><th>Тип</th><th>Опис</th><th>Посилання</th></tr>
+        {% for p in platforms %}
+        <tr>
+            <td><strong>{{ p.name }}</strong></td>
+            <td>
+                {% if p.type == 'state' %}<span class="tag tag-blue">державна</span>
+                {% elif p.type == 'closed' %}<span class="tag tag-orange">закри��а</span>
+                {% else %}<span class="tag tag-gray">{{ p.type }}</span>{% endif %}
+            </td>
+            <td>{{ p.description }}</td>
+            <td>{% if p.url %}<a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.url }}</a>{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<!-- Accreditation info -->
+{% if accreditation %}
+<div class="card" style="border-left: 3px solid #f39c12;">
+    <h2>Акредитація у банках</h2>
+    <p>Деякі банки проводять внутрішні аукціони серед акредитованих фінансових компаній. Нижче — відома інформація:</p>
+    <table>
+        <tr><th>Банк</th><th>Сайт</th><th>Сторінка акредитації</th><th>Примітки</th></tr>
+        {% for info in accreditation %}
+        <tr>
+            <td><strong>{{ info.bank }}</strong></td>
+            <td><a href="{{ info.website }}" target="_blank" rel="noopener">{{ info.website }}</a></td>
+            <td>{% if info.accreditation_page %}<a href="{{ info.accreditation_page }}" target="_blank" rel="noopener">Сторінка</a>{% else %}—{% endif %}</td>
+            <td style="font-size:0.85rem;">{{ info.notes }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<!-- Banks tracked -->
+<div class="card">
+    <h2>��анки та МФО під моніторингом ({{ banks|length }})</h2>
+    <table>
+        <tr><th>Назва</th><th>Короткою</th><th>Тип</th><th>Сайт</th><th>NPL-сторінка</th><th>Примітки</th></tr>
+        {% for b in banks %}
+        <tr>
+            <td>{{ b.name }}</td>
+            <td><strong>{{ b.short_name }}</strong></td>
+            <td>
+                {% if b.bank_type == 'state_bank' %}<span class="tag tag-blue">держ. банк</span>
+                {% elif b.bank_type == 'private_bank' %}<span class="tag tag-green">прив. банк</span>
+                {% elif b.bank_type == 'mfo' %}<span class="tag tag-orange">МФО</span>
+                {% elif b.bank_type == 'fc' %}<span class="tag tag-red">ФК</span>
+                {% else %}<span class="tag tag-gray">{{ b.bank_type }}</span>{% endif %}
+            </td>
+            <td><a href="{{ b.website }}" target="_blank" rel="noopener">Сайт</a></td>
+            <td>{% if b.npl_page %}<a href="{{ b.npl_page }}" target="_blank" rel="noopener">NPL</a>{% else %}—{% endif %}</td>
+            <td style="font-size:0.85rem;">{{ b.notes }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<!-- DGF historical data -->
+<div class="card">
+    <h2>ФГВ — історія продажу портфелів</h2>
+    <p>Фонд гарантування вкладів фізичних осіб (<a href="https://fg.gov.ua" target="_blank" rel="noopener">fg.gov.ua</a>)
+       продає активи ліквідованих банків з 2012 року. З 2020 року основна частина продажів здійснюється через ProZorro.Sale.</p>
+    <p><strong>Для перевірки:</strong> чи ФК-покупець подавав позови та виконавчі написи по придбаних портфелях —
+       використовуйте <a href="/check-company">Перевірку компанії</a> із ЄДРПОУ поку��ця.</p>
+    <p><a href="/auctions/scan" class="btn btn-primary">Сканувати ФГВ та інші джерела</a></p>
+</div>
+
+<!-- What to look for -->
+<div class="card">
+    <h2>Що шукати: ключові сигнали</h2>
+    <ul>
+        <li><strong>Банківські сайти</strong> — розділи "Продаж активів", "Непрацюючі активи", новини про тендери</li>
+        <li><strong>Річні звіти банків та МФО</strong> — згадки про продаж/списання портфелів</li>
+        <li><strong>НКЦПФР</strong> — розкриття інформації емітентами (великі ФК звітують про купівлю)</li>
+        <li><strong>Судові рішення</strong> — масові позови від однієї ФК = вони купили портфель</li>
+        <li><strong>Закриті тендери</strong> — банки надсилають запрошення акредитованим ФК</li>
+        <li><strong>МФО звіти</strong> — великі МФО (Манівео, MyCredit, CCloan) згадують продажі в фін. звітності</li>
+    </ul>
+</div>
+{% endblock %}

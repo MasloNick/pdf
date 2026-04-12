@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Торги / Аукціони NPL-портфелів</h2>
+
+<div class="card">
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+        <a href="/auctions" class="btn {% if not current_source %}btn-primary{% else %}btn-success{% endif %}">Всі</a>
+        <a href="/auctions?source=setam" class="btn {% if current_source == 'setam' %}btn-primary{% else %}btn-success{% endif %}">SETAM</a>
+        <a href="/auctions?source=prozorro" class="btn {% if current_source == 'prozorro' %}btn-primary{% else %}btn-success{% endif %}">ProZorro</a>
+        <a href="/auctions?source=dgf" class="btn {% if current_source == 'dgf' %}btn-primary{% else %}btn-success{% endif %}">ФГВ</a>
+        <a href="/auctions?source=bank" class="btn {% if current_source == 'bank' %}btn-primary{% else %}btn-success{% endif %}">Банки</a>
+        <span style="flex-grow:1"></span>
+        <a href="/auctions/scan" class="btn btn-warning">Запустити сканування</a>
+    </div>
+
+    {% if auctions %}
+    <table>
+        <tr>
+            <th>Джерело</th>
+            <th>Назва</th>
+            <th>Продавець</th>
+            <th>Тип портфеля</th>
+            <th>Тип боргу</th>
+            <th>Боржників</th>
+            <th>Загальний борг</th>
+            <th>Стартова ціна</th>
+            <th>Гарантійний внесок</th>
+            <th>Дата</th>
+            <th>Статус</th>
+        </tr>
+        {% for a in auctions %}
+        <tr>
+            <td><span class="tag tag-blue">{{ a.source }}</span></td>
+            <td>
+                {% if a.url %}
+                <a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title[:60] }}</a>
+                {% else %}
+                {{ a.title[:60] }}
+                {% endif %}
+            </td>
+            <td>{{ a.seller or '—' }}</td>
+            <td>
+                {% if a.portfolio_type == 'physical' %}<span class="tag tag-blue">фіз</span>
+                {% elif a.portfolio_type == 'legal' %}<span class="tag tag-orange">юр</span>
+                {% else %}<span class="tag tag-gray">{{ a.portfolio_type or '—' }}</span>{% endif %}
+            </td>
+            <td>{{ a.debt_type or '—' }}</td>
+            <td>{{ a.num_debtors or '—' }}</td>
+            <td>{{ fmt_uah(a.total_debt) }}</td>
+            <td>{{ fmt_uah(a.start_price) }}</td>
+            <td>{{ fmt_uah(a.guarantee_amount) }}</td>
+            <td>{{ a.auction_date or '—' }}</td>
+            <td>
+                {% if a.status == 'active' %}<span class="tag tag-green">активний</span>
+                {% elif a.status == 'completed' %}<span class="tag tag-gray">завершений</span>
+                {% else %}<span class="tag tag-orange">{{ a.status }}</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>Немає даних. <a href="/auctions/scan">Запустіть сканування</a> для збору інформації з торговельних платформ.</p>
+    {% endif %}
+</div>
+{% endblock %}
