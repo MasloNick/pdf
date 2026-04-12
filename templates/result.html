@@ -1,4 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<p>{{ result }}</p>
+<h2>Результат пошуку</h2>
+<table border="1" cellpadding="6" cellspacing="0">
+    <tr><th>Область</th><td>{{ oblast }}</td></tr>
+    <tr><th>Район</th><td>{{ district }}</td></tr>
+    <tr><th>Населений пункт</th><td>{{ settlement }}</td></tr>
+    <tr><th>Суд</th><td><strong>{{ result }}</strong></td></tr>
+</table>
+<br>
+<a href="/">&larr; Новий пошук</a>
 {% endblock %}

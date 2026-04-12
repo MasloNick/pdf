@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
+<h2>Пошук суду</h2>
 <form method="post">
-    <label>Oblast: <input type="text" name="oblast"></label><br>
-    <label>District: <input type="text" name="district"></label><br>
-    <label>Settlement: <input type="text" name="settlement"></label><br>
-    <label><input type="checkbox" name="normalise"> Normalise address</label><br>
-    <button type="submit">Search</button>
+    <label>Область: <input type="text" name="oblast"></label><br><br>
+    <label>Район: <input type="text" name="district"></label><br><br>
+    <label>Населений пункт: <input type="text" name="settlement"></label><br><br>
+    <label><input type="checkbox" name="normalise"> Нормалізувати адресу</label><br><br>
+    <button type="submit">Знайти</button>
 </form>
 {% endblock %}

@@ -1,11 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="utf-8">
-    <title>Address Search</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Пошук суду за адресою</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; background: #fafafa; }
+        header { background: #2c3e50; color: #fff; padding: 0.8rem 1.5rem; }
+        header h1 { margin: 0; font-size: 1.3rem; }
+        header h1 a { color: #fff; text-decoration: none; }
+        nav { background: #34495e; padding: 0.4rem 1.5rem; }
+        nav a { color: #ecf0f1; text-decoration: none; margin-right: 1.2rem; font-size: 0.95rem; }
+        nav a:hover { text-decoration: underline; }
+        main { max-width: 900px; margin: 1.5rem auto; padding: 0 1.5rem; }
+        .flash { background: #fff3cd; border: 1px solid #ffc107; padding: 0.6rem 1rem; margin-bottom: 1rem; border-radius: 4px; }
+    </style>
 </head>
 <body>
-    <h1><a href="/">Address Search</a></h1>
-    {% block content %}{% endblock %}
+    <header>
+        <h1><a href="/">Пошук суду за адресою</a></h1>
+    </header>
+    <nav>
+        <a href="/">Пошук</a>
+        <a href="/batch">Пакетна обробка</a>
+        <a href="/normalize">Нормалізація CSV</a>
+        <a href="/official-sources">Офіційні джерела</a>
+    </nav>
+    <main>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="flash">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
 </body>
 </html>
