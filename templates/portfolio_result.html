@@ -249,25 +249,38 @@
 </div>
 {% endif %}
 
-<!-- Export buttons -->
+<!-- ACTION PANEL — все пов'язано -->
 <div class="card" style="border-left: 3px solid #3498db;">
-    <h2>Вивантажити аналітику</h2>
-    <p>Скачати повний звіт з усіма даними, скорингом, рекомендаціями та посиланнями:</p>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-        <form method="post" action="/export/portfolio" enctype="multipart/form-data" style="display:inline;">
-            <input type="hidden" name="format" value="json">
-            <input type="hidden" name="asking_price" value="">
-            <input type="file" name="file" accept=".csv" required style="display:none" id="export-json-file">
-            <button type="button" class="btn btn-primary" onclick="document.getElementById('export-json-file').click()">JSON (повний звіт)</button>
+    <h2>Що далі?</h2>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+
+        <!-- PDF звіт -->
+        <form method="post" action="/report/{{ csv_id }}" style="display:inline;">
+            <button type="submit" class="btn btn-primary">Друкувати звіт (PDF)</button>
         </form>
-        <form method="post" action="/export/portfolio" enctype="multipart/form-data" style="display:inline;">
-            <input type="hidden" name="format" value="csv">
-            <input type="hidden" name="asking_price" value="">
-            <input type="file" name="file" accept=".csv" required style="display:none" id="export-csv-file">
-            <button type="button" class="btn btn-success" onclick="document.getElementById('export-csv-file').click()">CSV (для Excel/Google Sheets)</button>
+
+        <!-- Експорт JSON -->
+        <form method="post" action="/export/{{ csv_id }}/json" style="display:inline;">
+            <button type="submit" class="btn btn-success">Скачати JSON</button>
         </form>
+
+        <!-- Експорт CSV -->
+        <form method="post" action="/export/{{ csv_id }}/csv" style="display:inline;">
+            <button type="submit" class="btn btn-success">Скачати CSV</button>
+        </form>
+
+        <!-- Порівняти з іншим -->
+        <a href="/compare?csv_a_id={{ csv_id }}" class="btn btn-warning">Порівняти з іншим портфелем</a>
+
+        {% if has_legal %}
+        <!-- Перевірити юросіб -->
+        <a href="/bulk-check/{{ csv_id }}" class="btn btn-danger">Перевірити юросіб (ЄДРПОУ)</a>
+        {% endif %}
+
+        <!-- Калькулятор ціни -->
+        <a href="/pricing?total_debt={{ summary.total_debt }}&num_debtors={{ summary.total_records }}&principal_ratio={{ (summary.principal_ratio * 100)|round|int }}" class="btn btn-primary">Калькулятор ціни</a>
     </div>
-    <p style="font-size:0.85rem;color:#888;margin-top:0.5rem;">Для відправки по пошті/месенджерах — скачайте файл та прикріпіть до повідомлення.</p>
+    <p style="font-size:0.85rem;color:#888;">Файл збережено — переходи між сторінками без повторного завантаження.</p>
 </div>
 
 <br>

@@ -4,11 +4,17 @@
 
 {% if not result %}
 <div class="card">
-    <p>Завантажте два CSV-файли для порівняння:</p>
+    <p>{% if csv_a_id %}Портфель A вже завантажено з попереднього аналізу. Додайте другий для порівняння:{% else %}Завантажте два CSV-файли для порівняння:{% endif %}</p>
     <form method="post" enctype="multipart/form-data">
-        <label>Портфель A: <input type="text" name="name_a" placeholder="Назва (необов'язково)" style="max-width:250px"></label>
+        {% if csv_a_id %}
+        <input type="hidden" name="csv_a_id" value="{{ csv_a_id }}">
+        <p><span class="tag tag-green">Портфель A завантажено</span></p>
+        <label>Назва A: <input type="text" name="name_a" value="Поточний портфель" style="max-width:250px"></label><br><br>
+        {% else %}
+        <label>Портфель A: <input type="text" name="name_a" placeholder="Назва" style="max-width:250px"></label>
         <input type="file" name="file_a" accept=".csv" required><br><br>
-        <label>Портфель B: <input type="text" name="name_b" placeholder="Назва (необов'язково)" style="max-width:250px"></label>
+        {% endif %}
+        <label>Портфель B: <input type="text" name="name_b" placeholder="Назва" style="max-width:250px"></label>
         <input type="file" name="file_b" accept=".csv" required><br><br>
         <button type="submit" class="btn btn-primary">Порівняти</button>
     </form>

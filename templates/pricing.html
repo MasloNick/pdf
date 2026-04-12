@@ -7,7 +7,7 @@
         <div class="form-row">
             <div>
                 <label>Загальна сума боргу (грн)</label>
-                <input type="number" name="total_debt" step="0.01" placeholder="напр. 10000000" required>
+                <input type="number" name="total_debt" step="0.01" placeholder="напр. 10000000" value="{{ request.args.get('total_debt', '') }}" required>
             </div>
             <div>
                 <label>Запитувана ціна (грн, якщо є)</label>
@@ -41,11 +41,11 @@
         <div class="form-row">
             <div>
                 <label>Частка тіла кредиту (%)</label>
-                <input type="number" name="principal_ratio" step="1" value="50" min="0" max="100">
+                <input type="number" name="principal_ratio" step="1" value="{{ request.args.get('principal_ratio', '50') }}" min="0" max="100">
             </div>
             <div>
                 <label>Кількість боржників</label>
-                <input type="number" name="num_debtors" value="100">
+                <input type="number" name="num_debtors" value="{{ request.args.get('num_debtors', '100') }}">
             </div>
         </div>
         <div class="form-row">

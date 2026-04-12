@@ -1,5 +1,6 @@
 from flask import Flask, flash, jsonify, request, render_template, send_file, redirect, url_for
 import csv
+import hashlib
 import io
 import json
 import os
@@ -14,8 +15,26 @@ ROOT_DIR = BASE_DIR.parent
 if __package__ in (None, ""):
     sys.path.append(str(ROOT_DIR))
 
+UPLOAD_DIR = ROOT_DIR / "data" / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 app = Flask(__name__, template_folder=str(ROOT_DIR / "templates"))
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
+
+
+def _save_csv(csv_text: str) -> str:
+    """Save CSV text to a temp file, return its ID."""
+    csv_id = hashlib.md5(csv_text.encode()).hexdigest()[:12]
+    (UPLOAD_DIR / f"{csv_id}.csv").write_text(csv_text, encoding="utf-8")
+    return csv_id
+
+
+def _load_csv(csv_id: str) -> str:
+    """Load CSV text by ID."""
+    path = UPLOAD_DIR / f"{csv_id}.csv"
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
 
 from scripts.collect_official_sources import (  # noqa: E402,E401
     ADMINISTRATIVE_HIERARCHY,
@@ -192,6 +211,9 @@ def portfolio_analysis():
         asking = float(request.form.get("asking_price", 0) or 0)
         scoring = score_portfolio(records, asking_price=asking)
 
+        # Save CSV for reuse across pages (compare, bulk-check, report)
+        csv_id = _save_csv(csv_text)
+
         return render_template(
             "portfolio_result.html",
             summary=summary.to_dict(),
@@ -199,6 +221,8 @@ def portfolio_analysis():
             scoring=scoring.to_dict(),
             records=records[:100],
             total_records=len(records),
+            csv_id=csv_id,
+            has_legal=summary.legal_count > 0,
         )
 
     return render_template("portfolio.html")
@@ -392,25 +416,12 @@ def courts_db():
 # New features: report, compare, bulk-check, market
 # ============================================================================
 
-@app.route("/report", methods=["POST"])
-def portfolio_report():
-    """Generate printable HTML report for portfolio."""
-    from scripts.analysis.report import generate_html_report
-    file = request.files.get("file")
-    if not file or not file.filename:
-        flash("Оберіть CSV-файл.")
-        return redirect(url_for("portfolio_analysis"))
-    try:
-        csv_text = file.stream.read().decode("utf-8")
-    except UnicodeDecodeError:
-        flash("Помилка кодування.")
-        return redirect(url_for("portfolio_analysis"))
+def _analyze_csv(csv_text: str, asking: float = 0):
+    """Common helper: parse CSV and return (records, summary, scoring, pricing)."""
     records, _ = import_portfolio_csv(csv_text)
     if not records:
-        flash("Порожній файл.")
-        return redirect(url_for("portfolio_analysis"))
+        return None, None, None, None
     summary = analyze_portfolio(records)
-    asking = float(request.form.get("asking_price", 0) or 0)
     scoring_data = score_portfolio(records, asking_price=asking)
     pricing_data = recommend_price(
         total_debt=summary.total_debt,
@@ -419,31 +430,120 @@ def portfolio_report():
         num_debtors=summary.total_records,
         avg_debt=summary.avg_debt,
     )
+    return records, summary, scoring_data, pricing_data
+
+
+@app.route("/report/<csv_id>", methods=["GET", "POST"])
+def portfolio_report(csv_id):
+    """Generate printable HTML report using saved CSV."""
+    from scripts.analysis.report import generate_html_report
+    csv_text = _load_csv(csv_id)
+    if not csv_text:
+        flash("Файл не знайдено. Завантажте портфель знову.")
+        return redirect(url_for("portfolio_analysis"))
+    records, summary, scoring_data, pricing_data = _analyze_csv(csv_text)
+    if not records:
+        flash("Порожній файл.")
+        return redirect(url_for("portfolio_analysis"))
     html = generate_html_report(summary.to_dict(), scoring_data.to_dict(), pricing_data.to_dict(), records[:50])
     return html
+
+
+@app.route("/export/<csv_id>/<fmt>", methods=["GET", "POST"])
+def export_by_id(csv_id, fmt):
+    """Export analytics for a saved CSV as JSON or CSV."""
+    csv_text = _load_csv(csv_id)
+    if not csv_text:
+        flash("Файл не знайдено.")
+        return redirect(url_for("portfolio_analysis"))
+    records, summary, scoring_data, pricing_data = _analyze_csv(csv_text)
+    if not records:
+        flash("Порожній файл.")
+        return redirect(url_for("portfolio_analysis"))
+    report = {
+        "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "summary": summary.to_dict(),
+        "scoring": scoring_data.to_dict(),
+        "pricing": pricing_data.to_dict(),
+        "records_count": len(records),
+    }
+    if fmt == "csv":
+        output = io.StringIO()
+        w = csv.writer(output)
+        w.writerow(["=== АНАЛІТИКА ПОРТФЕЛЯ ==="])
+        w.writerow(["Дата", report["generated_at"]])
+        for k, v in summary.to_dict().items():
+            if not isinstance(v, dict):
+                w.writerow([k, v])
+        return send_file(
+            io.BytesIO(output.getvalue().encode("utf-8-sig")),
+            mimetype="text/csv", as_attachment=True,
+            download_name="portfolio_analytics.csv",
+        )
+    else:
+        data = json.dumps(report, ensure_ascii=False, indent=2, default=str)
+        return send_file(
+            io.BytesIO(data.encode("utf-8")),
+            mimetype="application/json", as_attachment=True,
+            download_name="portfolio_analytics.json",
+        )
+
+
+@app.route("/bulk-check/<csv_id>")
+def bulk_check_from_portfolio(csv_id):
+    """Auto bulk-check legal entities from a saved portfolio CSV."""
+    from scripts.checkers.bulk_check import check_companies_from_portfolio, export_check_results_csv
+    csv_text = _load_csv(csv_id)
+    if not csv_text:
+        flash("Файл не знайдено.")
+        return redirect(url_for("portfolio_analysis"))
+    records, _ = import_portfolio_csv(csv_text)
+    if not records:
+        flash("Порожній файл.")
+        return redirect(url_for("portfolio_analysis"))
+    results = check_companies_from_portfolio(records)
+    if not results:
+        flash("Юридичних осіб з ЄДРПОУ не знайдено в портфелі.")
+        return redirect(url_for("portfolio_analysis"))
+    return render_template("bulk_check.html", results=results, csv_id=csv_id)
 
 
 @app.route("/compare", methods=["GET", "POST"])
 def compare_portfolios_route():
     """Compare two portfolios side by side."""
+    csv_a_id = request.args.get("csv_a_id", "")
+
     if request.method == "POST":
         from scripts.analysis.compare import compare_portfolios
-        file_a = request.files.get("file_a")
+
+        # CSV A: from saved ID or from file upload
+        csv_a_id_form = request.form.get("csv_a_id", "")
+        if csv_a_id_form:
+            csv_a = _load_csv(csv_a_id_form)
+        else:
+            file_a = request.files.get("file_a")
+            if not file_a or not file_a.filename:
+                flash("Потрібен перший CSV-файл.")
+                return redirect(url_for("compare_portfolios_route"))
+            csv_a = file_a.stream.read().decode("utf-8")
+
+        # CSV B: always from file upload
         file_b = request.files.get("file_b")
-        if not file_a or not file_b or not file_a.filename or not file_b.filename:
-            flash("Потрібно два CSV-файли для порівняння.")
+        if not file_b or not file_b.filename:
+            flash("Потрібен другий CSV-файл для порівняння.")
             return redirect(url_for("compare_portfolios_route"))
         try:
-            csv_a = file_a.stream.read().decode("utf-8")
             csv_b = file_b.stream.read().decode("utf-8")
         except UnicodeDecodeError:
-            flash("Помилка кодування файлів.")
+            flash("Помилка кодування файлу.")
             return redirect(url_for("compare_portfolios_route"))
+
         name_a = request.form.get("name_a", "Портфель A") or "Портфель A"
         name_b = request.form.get("name_b", "Портфель B") or "Портфель B"
         result = compare_portfolios(csv_a, csv_b, name_a, name_b)
         return render_template("compare.html", result=result)
-    return render_template("compare.html", result=None)
+
+    return render_template("compare.html", result=None, csv_a_id=csv_a_id)
 
 
 @app.route("/bulk-check", methods=["GET", "POST"])
