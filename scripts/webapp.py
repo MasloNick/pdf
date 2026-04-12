@@ -34,6 +34,9 @@ from scripts.scrapers.banks import (  # noqa: E402
     BANK_REGISTRY,
     AUCTION_PLATFORMS,
     SEARCH_STRATEGIES,
+    VERIFICATION_SOURCES,
+    DGF_LIQUIDATED_BANKS,
+    SEARCH_KEYWORDS,
     get_accreditation_info,
 )
 
@@ -328,6 +331,9 @@ def monitoring():
         platforms=AUCTION_PLATFORMS,
         strategies=SEARCH_STRATEGIES,
         accreditation=accreditation,
+        verification_sources=VERIFICATION_SOURCES,
+        dgf_banks=DGF_LIQUIDATED_BANKS,
+        search_keywords=SEARCH_KEYWORDS,
     )
 
 

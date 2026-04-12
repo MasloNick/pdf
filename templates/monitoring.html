@@ -120,4 +120,58 @@
     </ol>
     <p><a href="/auctions/scan" class="btn btn-primary">Сканувати ФГВ та інші джерела</a></p>
 </div>
+
+<!-- DGF Liquidated banks list -->
+{% if dgf_banks %}
+<div class="card">
+    <h2>Банки під ліквідацією ФГВ — їх портфелі продаються</h2>
+    <p>Шукати на <a href="https://prozorro.sale/search" target="_blank" rel="noopener">ProZorro.Sale</a>
+       за назвою кожного банку як продавця/організатора.</p>
+    <table>
+        <tr><th>Банк</th><th>Початок ліквідації</th><th>Де шукати портфелі</th></tr>
+        {% for b in dgf_banks %}
+        <tr>
+            <td><strong>{{ b.name }}</strong></td>
+            <td>{{ b.year_liquidation_start }}</td>
+            <td><a href="https://prozorro.sale/search" target="_blank" rel="noopener">ProZorro.Sale</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<!-- Verification sources -->
+{% if verification_sources %}
+<div class="card" style="border-left: 3px solid #27ae60;">
+    <h2>Джерела для верифікації боржників та покупців</h2>
+    <table>
+        <tr><th>Ресурс</th><th>Опис</th><th>Посилання</th></tr>
+        {% for s in verification_sources %}
+        <tr>
+            <td><strong>{{ s.name }}</strong></td>
+            <td style="font-size:0.85rem;">{{ s.description }}</td>
+            <td><a href="{{ s.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="font-size:0.8rem;padding:4px 8px;">Перейти</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<!-- Search keywords reference -->
+{% if search_keywords %}
+<div class="card">
+    <h2>Довідник ключових слів для пошуку</h2>
+    <p>Готові набори ключових слів для кожної платформи — копіюйте та вставляйте у пошук:</p>
+    {% for platform, keywords in search_keywords.items() %}
+    <div style="margin-bottom:1rem;">
+        <strong>{{ platform }}</strong>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+            {% for kw in keywords %}
+            <code style="background:#eee;padding:2px 6px;border-radius:3px;font-size:0.83rem;">{{ kw }}</code>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
