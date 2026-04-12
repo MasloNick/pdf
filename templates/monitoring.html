@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Мо��іторинг ринку NPL</h2>
+<h2>Моніторинг ринку NPL</h2>
 
 <!-- Search strategies -->
 <div class="card" style="border-left: 3px solid #3498db;">
@@ -12,7 +12,7 @@
             <td>
                 {% if s.priority == 'high' %}<span class="tag tag-red">високий</span>
                 {% elif s.priority == 'medium' %}<span class="tag tag-orange">середній</span>
-                {% else %}<span class="tag tag-gray">низь��ий</span>{% endif %}
+                {% else %}<span class="tag tag-gray">низький</span>{% endif %}
             </td>
             <td><strong>{{ s.name }}</strong></td>
             <td style="font-size:0.85rem;">{{ s.description }}</td>

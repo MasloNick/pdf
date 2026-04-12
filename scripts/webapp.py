@@ -248,7 +248,7 @@ def auctions_scan():
     # Try SETAM
     try:
         from scripts.scrapers.setam import SetamScraper
-        scraper = SetamScraper(timeout=15, max_retries=2)
+        scraper = SetamScraper(timeout=10, max_retries=1)
         raw_items = scraper.search_npl()  # HTML scraping, no API
         results["setam"] = raw_items
         results["errors"].extend(scraper.errors)
@@ -258,7 +258,7 @@ def auctions_scan():
     # Try ProZorro
     try:
         from scripts.scrapers.prozorro import ProzorroScraper
-        scraper = ProzorroScraper(timeout=15, max_retries=2)
+        scraper = ProzorroScraper(timeout=10, max_retries=1)
         raw_items = scraper.search_npl(limit=20)
         for raw in raw_items:
             parsed = scraper.parse_procedure(raw)
@@ -272,7 +272,7 @@ def auctions_scan():
     # Try DGF
     try:
         from scripts.scrapers.prozorro import DGFScraper
-        scraper = DGFScraper(timeout=15, max_retries=2)
+        scraper = DGFScraper(timeout=10, max_retries=1)
         dgf_items = scraper.search_dgf_sales()
         results["dgf"] = dgf_items
         results["errors"].extend(scraper.errors)
@@ -283,8 +283,8 @@ def auctions_scan():
     try:
         from scripts.scrapers.banks import BankSiteScraper
         from scripts.scrapers.parallel import scan_all_banks_parallel
-        scraper = BankSiteScraper(timeout=10, max_retries=1)
-        bank_items, bank_errors = scan_all_banks_parallel(BANK_REGISTRY, scraper, max_workers=10)
+        scraper = BankSiteScraper(timeout=8, max_retries=1)
+        bank_items, bank_errors = scan_all_banks_parallel(BANK_REGISTRY, scraper, max_workers=15)
         results["banks"] = bank_items
         results["errors"].extend(bank_errors)
     except Exception as exc:

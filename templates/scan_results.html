@@ -36,15 +36,11 @@
 <div class="card">
     <h2>SETAM ({{ results.setam|length }})</h2>
     <table>
-        <tr><th>Назва</th><th>Продавець</th><th>Тип</th><th>Борг</th><th>Ціна</th><th>Статус</th></tr>
+        <tr><th>Назва</th><th>Посилання</th></tr>
         {% for a in results.setam %}
         <tr>
-            <td>{% if a.url %}<a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.title[:70] }}</a>{% else %}{{ a.title[:70] }}{% endif %}</td>
-            <td>{{ a.seller or '—' }}</td>
-            <td>{{ a.portfolio_type or '—' }}</td>
-            <td>{{ fmt_uah(a.total_debt) }}</td>
-            <td>{{ fmt_uah(a.start_price) }}</td>
-            <td><span class="tag tag-green">{{ a.status }}</span></td>
+            <td>{{ a.title }}</td>
+            <td><a href="{{ a.url }}" target="_blank" rel="noopener">{{ a.url }}</a></td>
         </tr>
         {% endfor %}
     </table>
