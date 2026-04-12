@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Аналітика ринку NPL</h2>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ stats.get('всього_продажів', 0) }}</div>
+        <div class="label">Продажів в базі</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{% if stats.get('середня_ціна_відсоток') %}{{ "%.2f"|format(stats['середня_ціна_відсоток']) }}%{% else %}—{% endif %}</div>
+        <div class="label">Середня ціна (% від боргу)</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{% if stats.get('мін_ціна_відсоток') %}{{ "%.2f"|format(stats['мін_ціна_відсоток']) }}%{% else %}—{% endif %}</div>
+        <div class="label">Мін ціна %</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{% if stats.get('макс_ціна_відсоток') %}{{ "%.2f"|format(stats['макс_ціна_відсоток']) }}%{% else %}—{% endif %}</div>
+        <div class="label">Макс ціна %</div>
+    </div>
+</div>
+
+{% if stats.get('останні_продажі') %}
+<div class="card">
+    <h2>Останні продажі</h2>
+    <table>
+        <tr><th>Дата</th><th>Тип</th><th>Продавець</th><th>Борг</th><th>Ціна</th><th>% від боргу</th></tr>
+        {% for s in stats['останні_продажі'] %}
+        <tr>
+            <td>{{ s.date }}</td>
+            <td>{{ s.type or '—' }}</td>
+            <td>{{ s.seller or '—' }}</td>
+            <td>{{ fmt_uah(s.debt) }}</td>
+            <td>{{ fmt_uah(s.price) }}</td>
+            <td><strong>{{ "%.2f"|format(s.pct) }}%</strong></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Імпорт історичних продажів</h2>
+    <p>Завантажте CSV з колонками: <code>дата</code>, <code>продавець</code>, <code>покупець</code>, <code>тип</code>, <code>борг</code>, <code>ціна</code>, <code>примітки</code></p>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".csv" required><br><br>
+        <button type="submit" class="btn btn-primary">Імпортувати</button>
+    </form>
+</div>
+{% endblock %}

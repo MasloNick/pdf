@@ -389,6 +389,116 @@ def courts_db():
 
 
 # ============================================================================
+# New features: report, compare, bulk-check, market
+# ============================================================================
+
+@app.route("/report", methods=["POST"])
+def portfolio_report():
+    """Generate printable HTML report for portfolio."""
+    from scripts.analysis.report import generate_html_report
+    file = request.files.get("file")
+    if not file or not file.filename:
+        flash("Оберіть CSV-файл.")
+        return redirect(url_for("portfolio_analysis"))
+    try:
+        csv_text = file.stream.read().decode("utf-8")
+    except UnicodeDecodeError:
+        flash("Помилка кодування.")
+        return redirect(url_for("portfolio_analysis"))
+    records, _ = import_portfolio_csv(csv_text)
+    if not records:
+        flash("Порожній файл.")
+        return redirect(url_for("portfolio_analysis"))
+    summary = analyze_portfolio(records)
+    asking = float(request.form.get("asking_price", 0) or 0)
+    scoring_data = score_portfolio(records, asking_price=asking)
+    pricing_data = recommend_price(
+        total_debt=summary.total_debt,
+        portfolio_type="physical" if summary.physical_count > summary.legal_count else "legal",
+        principal_ratio=summary.principal_ratio,
+        num_debtors=summary.total_records,
+        avg_debt=summary.avg_debt,
+    )
+    html = generate_html_report(summary.to_dict(), scoring_data.to_dict(), pricing_data.to_dict(), records[:50])
+    return html
+
+
+@app.route("/compare", methods=["GET", "POST"])
+def compare_portfolios_route():
+    """Compare two portfolios side by side."""
+    if request.method == "POST":
+        from scripts.analysis.compare import compare_portfolios
+        file_a = request.files.get("file_a")
+        file_b = request.files.get("file_b")
+        if not file_a or not file_b or not file_a.filename or not file_b.filename:
+            flash("Потрібно два CSV-файли для порівняння.")
+            return redirect(url_for("compare_portfolios_route"))
+        try:
+            csv_a = file_a.stream.read().decode("utf-8")
+            csv_b = file_b.stream.read().decode("utf-8")
+        except UnicodeDecodeError:
+            flash("Помилка кодування файлів.")
+            return redirect(url_for("compare_portfolios_route"))
+        name_a = request.form.get("name_a", "Портфель A") or "Портфель A"
+        name_b = request.form.get("name_b", "Портфель B") or "Портфель B"
+        result = compare_portfolios(csv_a, csv_b, name_a, name_b)
+        return render_template("compare.html", result=result)
+    return render_template("compare.html", result=None)
+
+
+@app.route("/bulk-check", methods=["GET", "POST"])
+def bulk_check():
+    """Bulk company verification from CSV."""
+    if request.method == "POST":
+        from scripts.checkers.bulk_check import check_companies_from_csv, export_check_results_csv
+        file = request.files.get("file")
+        if not file or not file.filename:
+            flash("Оберіть CSV-файл з ЄДРПОУ.")
+            return redirect(url_for("bulk_check"))
+        try:
+            csv_text = file.stream.read().decode("utf-8")
+        except UnicodeDecodeError:
+            flash("Помилка кодування.")
+            return redirect(url_for("bulk_check"))
+        download = request.form.get("download")
+        results, warnings = check_companies_from_csv(csv_text)
+        for w in warnings:
+            flash(w)
+        if download == "csv" and results:
+            csv_out = export_check_results_csv(results)
+            return send_file(
+                io.BytesIO(csv_out.encode("utf-8-sig")),
+                mimetype="text/csv",
+                as_attachment=True,
+                download_name="company_check_results.csv",
+            )
+        return render_template("bulk_check.html", results=results)
+    return render_template("bulk_check.html", results=None)
+
+
+@app.route("/market", methods=["GET", "POST"])
+def market_analytics():
+    """Market analytics and historical sales."""
+    from scripts.analysis.market import get_market_stats, import_historical_sales_csv
+    if request.method == "POST":
+        file = request.files.get("file")
+        if file and file.filename:
+            try:
+                csv_text = file.stream.read().decode("utf-8")
+                with get_db() as conn:
+                    result = import_historical_sales_csv(conn, csv_text)
+                flash(f"Імпортовано {result['imported']} продажів.")
+                for w in result.get("warnings", []):
+                    flash(w)
+            except Exception as exc:
+                flash(f"Помилка імпорту: {exc}")
+        return redirect(url_for("market_analytics"))
+    with get_db() as conn:
+        stats = get_market_stats(conn)
+    return render_template("market.html", stats=stats)
+
+
+# ============================================================================
 # Export — вивантаження аналітики у CSV/JSON з усіма даними
 # ============================================================================
 
