@@ -1,49 +1,95 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Дашборд</h2>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+        <h2 style="margin:0;font-size:1.4rem;">Дашборд</h2>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:4px;">Моніторинг ринку NPL-портфелів України</p>
+    </div>
+    <a href="/auctions/scan" class="btn btn-primary" style="font-size:0.9rem;padding:10px 20px;">
+        &#8635; Сканувати торги
+    </a>
+</div>
 
 <div class="stats-grid">
-    <div class="stat-card">
+    <div class="stat-card" style="border-left:3px solid var(--accent);">
         <div class="number">{{ stats.total_auctions }}</div>
         <div class="label">Торгів у базі</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" style="border-left:3px solid var(--green);">
         <div class="number">{{ stats.active }}</div>
         <div class="label">Активних</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" style="border-left:3px solid var(--orange);">
         <div class="number">{{ fmt_uah(stats.total_debt) }}</div>
         <div class="label">Загальний борг</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" style="border-left:3px solid var(--blue);">
         <div class="number">{{ stats.banks_tracked }}</div>
-        <div class="label">Банків/МФО відстежується</div>
+        <div class="label">Організацій під моніторингом</div>
     </div>
 </div>
 
 <div class="two-col">
     <div class="card">
-        <h2>Швидкі дії</h2>
-        <p><a href="/auctions/scan" class="btn btn-primary">Сканувати торги</a></p>
-        <p><a href="/portfolio" class="btn btn-success">Аналіз портфеля (CSV)</a></p>
-        <p><a href="/pricing" class="btn btn-warning">Калькулятор ціни</a></p>
-        <p><a href="/check-company" class="btn btn-primary">Перевірка юрособи</a></p>
+        <h2 style="margin-bottom:16px;">Швидкі дії</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <a href="/auctions/scan" class="btn btn-primary" style="text-align:center;padding:14px;border-radius:10px;">
+                <div style="font-size:1.3rem;margin-bottom:4px;">&#8635;</div>
+                Сканувати торги
+            </a>
+            <a href="/portfolio" class="btn btn-success" style="text-align:center;padding:14px;border-radius:10px;">
+                <div style="font-size:1.3rem;margin-bottom:4px;">&#9776;</div>
+                Аналіз портфеля
+            </a>
+            <a href="/pricing" class="btn btn-warning" style="text-align:center;padding:14px;border-radius:10px;">
+                <div style="font-size:1.3rem;margin-bottom:4px;">&#8364;</div>
+                Калькулятор ціни
+            </a>
+            <a href="/check-company" class="btn btn-outline" style="text-align:center;padding:14px;border-radius:10px;">
+                <div style="font-size:1.3rem;margin-bottom:4px;">&#10004;</div>
+                Перевірка компанії
+            </a>
+            <a href="/compare" class="btn btn-outline" style="text-align:center;padding:14px;border-radius:10px;">
+                <div style="font-size:1.3rem;margin-bottom:4px;">&#8646;</div>
+                Порівняти портфелі
+            </a>
+            <a href="/courts" class="btn btn-outline" style="text-align:center;padding:14px;border-radius:10px;">
+                <div style="font-size:1.3rem;margin-bottom:4px;">&#9959;</div>
+                База судів
+            </a>
+        </div>
     </div>
     <div class="card">
-        <h2>Платформи торгів</h2>
-        <ul>
-            <li><a href="https://setam.net.ua" target="_blank" rel="noopener">SETAM</a> — Державне підприємство</li>
-            <li><a href="https://prozorro.sale" target="_blank" rel="noopener">ProZorro.Продажі</a> — Державна платформа</li>
-            <li><a href="https://fg.gov.ua" target="_blank" rel="noopener">ФГВ</a> — Фонд гарантування вкладів</li>
-            <li><strong>Закриті банківські тендери</strong> — Креді Агріколь, ПУМБ, Райффайзен та ін.</li>
-        </ul>
-        <p><a href="/monitoring">Детальніше &rarr;</a></p>
+        <h2 style="margin-bottom:16px;">Платформи торгів</h2>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;">
+                <div style="width:40px;height:40px;background:var(--blue-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">&#9733;</div>
+                <div><div style="color:var(--text);font-weight:600;font-size:0.9rem;">ProZorro.Sale</div><div style="color:var(--text2);font-size:0.78rem;">Пошук «право вимоги»</div></div>
+            </a>
+            <a href="https://setam.net.ua/auctions" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;">
+                <div style="width:40px;height:40px;background:var(--green-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">&#9878;</div>
+                <div><div style="color:var(--text);font-weight:600;font-size:0.9rem;">SETAM</div><div style="color:var(--text2);font-size:0.78rem;">Електронні торги</div></div>
+            </a>
+            <a href="https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;">
+                <div style="width:40px;height:40px;background:var(--orange-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">&#9830;</div>
+                <div><div style="color:var(--text);font-weight:600;font-size:0.9rem;">ФГВ</div><div style="color:var(--text2);font-size:0.78rem;">Фонд гарантування вкладів</div></div>
+            </a>
+            <a href="https://ubiz.ua/sale3/filter/bankrupts-property" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);text-decoration:none;">
+                <div style="width:40px;height:40px;background:var(--red-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">&#9632;</div>
+                <div><div style="color:var(--text);font-weight:600;font-size:0.9rem;">UBIZ.UA</div><div style="color:var(--text2);font-size:0.78rem;">Продаж майна банкрутів</div></div>
+            </a>
+        </div>
+        <p style="margin-top:12px;"><a href="/monitoring" style="font-size:0.85rem;">Всі 40 організацій та стратегії &rarr;</a></p>
     </div>
 </div>
 
 {% if auctions %}
 <div class="card">
-    <h2>Останні торги в базі</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <h2 style="margin:0;">Останні торги в базі</h2>
+        <a href="/auctions" style="font-size:0.85rem;">Всі торги &rarr;</a>
+    </div>
+    <div style="overflow-x:auto;">
     <table>
         <tr>
             <th>Джерело</th>
@@ -70,7 +116,7 @@
         </tr>
         {% endfor %}
     </table>
-    <p><a href="/auctions">Всі торги &rarr;</a></p>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

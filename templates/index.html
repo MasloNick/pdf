@@ -1,11 +1,35 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Пошук суду</h2>
-<form method="post">
-    <label>Область: <input type="text" name="oblast"></label><br><br>
-    <label>Район: <input type="text" name="district"></label><br><br>
-    <label>Населений пункт: <input type="text" name="settlement"></label><br><br>
-    <label><input type="checkbox" name="normalise"> Нормалізувати адресу</label><br><br>
-    <button type="submit">Знайти</button>
-</form>
+<h2 style="margin-bottom:20px;">Пошук суду за адресою</h2>
+
+<div class="two-col">
+    <div class="card" style="border-left:3px solid var(--accent);">
+        <h2>Введіть адресу</h2>
+        <form method="post">
+            <label>Область:</label>
+            <input type="text" name="oblast" placeholder="напр. Київська">
+            <label>Район:</label>
+            <input type="text" name="district" placeholder="напр. Білоцерківський">
+            <label>Населений пункт:</label>
+            <input type="text" name="settlement" placeholder="напр. Біла Церква">
+            <label style="display:flex;align-items:center;gap:6px;margin:12px 0;">
+                <input type="checkbox" name="normalise"> Нормалізувати адресу
+            </label>
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">Знайти суд</button>
+        </form>
+    </div>
+    <div class="card">
+        <h2>Як працює</h2>
+        <ol style="color:var(--text2);font-size:0.88rem;line-height:1.8;">
+            <li>Спочатку шукає в <strong>локальній базі</strong> (ваш xlsx)</li>
+            <li>Якщо не знайдено — запит до <strong>API court.gov.ua</strong></li>
+            <li>Повертає: назва суду, код, адреса, телефон</li>
+        </ol>
+        <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+            <p style="font-size:0.85rem;color:var(--text2);margin:0;">
+                &#9959; <a href="/courts">Завантажте базу судів</a> (xlsx) для моментального пошуку без інтернету
+            </p>
+        </div>
+    </div>
+</div>
 {% endblock %}
