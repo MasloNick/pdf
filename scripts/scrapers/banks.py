@@ -204,8 +204,90 @@ BANK_REGISTRY: List[BankConfig] = [
         website="https://bankvostok.com.ua",
         url_verified=True,
     ),
+    BankConfig(
+        name="АТ «Мегабанк»",
+        short_name="Мегабанк",
+        bank_type="private_bank",
+        website="https://megabank.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Банк Форвард»",
+        short_name="Форвард",
+        bank_type="private_bank",
+        website="https://forward-bank.com",
+        url_verified=True,
+        notes="Спеціалізується на споживчому кредитуванні, може мати NPL-портфелі.",
+    ),
+    BankConfig(
+        name="АТ «Ідея Банк»",
+        short_name="Ідея Банк",
+        bank_type="private_bank",
+        website="https://ideabank.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «МТБ Банк»",
+        short_name="МТБ Банк",
+        bank_type="private_bank",
+        website="https://mtb.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Банк Альянс»",
+        short_name="Банк Альянс",
+        bank_type="private_bank",
+        website="https://bankalliance.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Глобус Банк»",
+        short_name="Глобус Банк",
+        bank_type="private_bank",
+        website="https://globusbank.com.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Акордбанк»",
+        short_name="Акордбанк",
+        bank_type="private_bank",
+        website="https://accordbank.com.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Банк Січ»",
+        short_name="Банк Січ",
+        bank_type="private_bank",
+        website="https://nbsich.com",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Полікомбанк»",
+        short_name="Полікомбанк",
+        bank_type="private_bank",
+        website="https://polikombank.com.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «КІБ» (Комерційний Індустріальний Банк)",
+        short_name="КІБ",
+        bank_type="private_bank",
+        website="https://cib.com.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="АТ «Піреус Банк»",
+        short_name="Піреус Банк",
+        bank_type="private_bank",
+        website="https://piraeusbank.ua",
+        url_verified=True,
+        notes="Належить грецькій Piraeus Bank Group.",
+    ),
 
     # === МФО (мікрофінансові організації) ===
+    # Великі МФО мають значні портфелі мікрокредитів, які можуть продавати
+    # на закритих торгах. Інформацію шукати у їхній фінзвітності на
+    # stockmarket.gov.ua та в рішеннях АМКУ.
 
     BankConfig(
         name="ТОВ «Манівео»",
@@ -214,7 +296,7 @@ BANK_REGISTRY: List[BankConfig] = [
         website="https://moneyveo.ua",
         url_verified=True,
         notes="Одна з найбільших МФО України. Може продавати портфелі на закритих торгах. "
-              "Перевіряти фінзвітність на НКЦПФР / stockmarket.gov.ua.",
+              "Перевіряти фінзвітність на stockmarket.gov.ua.",
     ),
     BankConfig(
         name="ТОВ «MyCredit»",
@@ -245,10 +327,42 @@ BANK_REGISTRY: List[BankConfig] = [
         website="https://dinero.ua",
         url_verified=True,
     ),
+    BankConfig(
+        name="ТОВ «Aventus» (Швидко Гроші)",
+        short_name="Aventus",
+        bank_type="mfo",
+        website="https://shvidko-groshi.com.ua",
+        url_verified=True,
+        notes="Група Aventus — одна з найбільших МФО-груп в Україні.",
+    ),
+    BankConfig(
+        name="ТОВ «Credit Plus»",
+        short_name="Credit Plus",
+        bank_type="mfo",
+        website="https://creditplus.ua",
+        url_verified=True,
+    ),
+    BankConfig(
+        name="ТОВ «ТерГроші» (Tergroshy)",
+        short_name="ТерГроші",
+        bank_type="mfo",
+        website="https://tergroshy.com.ua",
+        url_verified=False,
+    ),
+    BankConfig(
+        name="ТОВ «Позичай»",
+        short_name="Позичай",
+        bank_type="mfo",
+        website="https://pozychay.com.ua",
+        url_verified=False,
+    ),
 
     # === ФК (фінансові компанії — колектори / факторинг) ===
-    # Великі ФК можуть перепродавати частини раніше куплених портфелів.
-    # Відстежувати через судові рішення та фінзвітність.
+    # Великі ФК — це і покупці NPL-портфелів, і потенційні продавці
+    # (перепродаж частин портфеля). Відстежувати через:
+    # 1) Рішення АМКУ про концентрацію
+    # 2) Масові позови в реєстрі судових рішень (reyestr.court.gov.ua)
+    # 3) Фінзвітність на stockmarket.gov.ua
 
     BankConfig(
         name="ТОВ «ФК Форінт»",
@@ -256,7 +370,7 @@ BANK_REGISTRY: List[BankConfig] = [
         bank_type="fc",
         website="https://forint.com.ua",
         url_verified=False,
-        notes="Велика ФК-колектор. Може перепродавати частини портфелів.",
+        notes="Одна з найбільших ФК-колекторів України. Може перепродавати частини портфелів.",
     ),
     BankConfig(
         name="ТОВ «Вердикт»",
@@ -264,6 +378,30 @@ BANK_REGISTRY: List[BankConfig] = [
         bank_type="fc",
         website="https://verdykt.com.ua",
         url_verified=False,
+    ),
+    BankConfig(
+        name="ТОВ «ФК Укрборг»",
+        short_name="Укрборг",
+        bank_type="fc",
+        website="https://ukrborg.com.ua",
+        url_verified=False,
+        notes="Велика ФК, активний покупець портфелів ПриватБанку та ФГВ. "
+              "Перевірити через ЄДРПОУ в судовому реєстрі — масові позови = активна робота з NPL.",
+    ),
+    BankConfig(
+        name="ТОВ «ФК Кредекс»",
+        short_name="Кредекс",
+        bank_type="fc",
+        website="https://credex.com.ua",
+        url_verified=False,
+    ),
+    BankConfig(
+        name="ТОВ «ФК Фактор Плюс»",
+        short_name="Фактор Плюс",
+        bank_type="fc",
+        website="https://factorplus.com.ua",
+        url_verified=False,
+        notes="Факторингова компанія, спеціалізується на викупі дебіторки.",
     ),
 ]
 
