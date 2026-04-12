@@ -511,14 +511,14 @@ SEARCH_STRATEGIES = [
             "портфель прав вимоги", "непрацюючі активи",
             "дебіторська заборгованість", "відступлення",
         ],
-        "target_url": "https://prozorro.sale/search",
+        "target_url": "https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8",
     },
     {
         "name": "SETAM — пошук лотів",
         "priority": "high",
         "description": "SETAM продає арештоване майно, але іноді з'являються портфелі прав вимоги.",
         "keywords": ["право вимоги", "портфель", "кредитний"],
-        "target_url": "https://setam.net.ua/search/lots",
+        "target_url": "https://setam.net.ua/auctions",
     },
     {
         "name": "Судовий реєстр — відстеження угод",

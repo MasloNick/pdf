@@ -125,7 +125,7 @@
 {% if dgf_banks %}
 <div class="card">
     <h2>Банки під ліквідацією ФГВ — їх портфелі продаються</h2>
-    <p>Шукати на <a href="https://prozorro.sale/search" target="_blank" rel="noopener">ProZorro.Sale</a>
+    <p>Шукати на <a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" rel="noopener">ProZorro.Sale</a>
        за назвою кожного банку як продавця/організатора.</p>
     <table>
         <tr><th>Банк</th><th>Початок ліквідації</th><th>Де шукати портфелі</th></tr>
@@ -133,7 +133,7 @@
         <tr>
             <td><strong>{{ b.name }}</strong></td>
             <td>{{ b.year_liquidation_start }}</td>
-            <td><a href="https://prozorro.sale/search" target="_blank" rel="noopener">ProZorro.Sale</a></td>
+            <td><a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" rel="noopener">ProZorro.Sale</a></td>
         </tr>
         {% endfor %}
     </table>
