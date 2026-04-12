@@ -31,7 +31,7 @@ from scripts.analysis.portfolio import (  # noqa: E402
 )
 from scripts.analysis.pricing import recommend_price, compare_price_to_market  # noqa: E402
 from scripts.analysis.scoring import score_portfolio  # noqa: E402
-from scripts.checkers.courts import find_court_by_address  # noqa: E402
+from scripts.checkers.courts import find_court_by_address, import_courts_xlsx, get_courts_count  # noqa: E402
 from scripts.scrapers.banks import (  # noqa: E402
     BANK_REGISTRY,
     AUCTION_PLATFORMS,
@@ -357,6 +357,35 @@ def monitoring():
         dgf_banks=DGF_LIQUIDATED_BANKS,
         search_keywords=SEARCH_KEYWORDS,
     )
+
+
+# ============================================================================
+# Courts database — upload xlsx
+# ============================================================================
+
+@app.route("/courts", methods=["GET", "POST"])
+def courts_db():
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file or not file.filename:
+            flash("Оберіть xlsx-файл з базою судів.")
+            return redirect(url_for("courts_db"))
+        if not file.filename.endswith((".xlsx", ".xls")):
+            flash("Потрібен файл формату .xlsx (Excel).")
+            return redirect(url_for("courts_db"))
+        try:
+            file_bytes = file.stream.read()
+            result = import_courts_xlsx(file_bytes)
+            if result["warnings"]:
+                for w in result["warnings"]:
+                    flash(w)
+            flash(f"Імпортовано {result['imported']} судів. Знайдені колонки: {', '.join(result['columns_found'])}")
+        except Exception as exc:
+            flash(f"Помилка імпорту: {exc}")
+        return redirect(url_for("courts_db"))
+
+    count = get_courts_count()
+    return render_template("courts.html", courts_count=count)
 
 
 # ============================================================================

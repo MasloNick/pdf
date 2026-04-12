@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>База судів України</h2>
+
+<div class="card">
+    <h2>Поточний стан</h2>
+    {% if courts_count > 0 %}
+    <p style="color:#27ae60;font-size:1.1rem;"><strong>В базі: {{ courts_count }} судів</strong></p>
+    <p>Пошук суду за адресою працює через локальну базу (моментально, без інтернету).</p>
+    {% else %}
+    <p style="color:#e74c3c;font-size:1.1rem;"><strong>База порожня</strong></p>
+    <p>Завантажте xlsx-файл з базою судів. Після цього пошук суду за адресою працюватиме моментально.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Завантажити базу судів (xlsx)</h2>
+    <p>Оберіть файл <code>Повна_база_судів_України_2025.xlsx</code> або аналогічний.</p>
+    <p style="font-size:0.85rem;">Система автоматично розпізнає колонки за назвами (українською або англійською):</p>
+    <table style="font-size:0.85rem;">
+        <tr><th>Що шукає</th><th>Можливі назви колонок</th></tr>
+        <tr><td>Назва суду</td><td><code>назва суду</code>, <code>назва</code>, <code>суд</code>, <code>найменування</code></td></tr>
+        <tr><td>Код суду</td><td><code>код суду</code>, <code>код</code>, <code>ідентифікатор</code></td></tr>
+        <tr><td>Область</td><td><code>область</code>, <code>регіон</code></td></tr>
+        <tr><td>Район</td><td><code>район</code></td></tr>
+        <tr><td>Місто</td><td><code>місто</code>, <code>населений пункт</code></td></tr>
+        <tr><td>Адреса</td><td><code>адреса</code>, <code>повна адреса</code>, <code>вулиця</code></td></tr>
+        <tr><td>Телефон</td><td><code>телефон</code>, <code>тел</code></td></tr>
+        <tr><td>Email</td><td><code>email</code>, <code>електронна пошта</code></td></tr>
+        <tr><td>Сайт</td><td><code>сайт</code>, <code>website</code>, <code>веб-сайт</code></td></tr>
+        <tr><td>Статус</td><td><code>статус</code></td></tr>
+        <tr><td>Голова суду</td><td><code>голова</code>, <code>голова суду</code></td></tr>
+    </table>
+    <br>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".xlsx,.xls" required><br><br>
+        <button type="submit" class="btn btn-primary">Завантажити базу</button>
+    </form>
+    {% if courts_count > 0 %}
+    <p style="font-size:0.85rem;color:#888;margin-top:0.5rem;">Увага: нове завантаження замінить попередню базу повністю.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Як працює пошук суду</h2>
+    <ol>
+        <li><strong>Спочатку</strong> — шукає в локальній базі (цей xlsx) по місту, району, області</li>
+        <li><strong>Якщо не знайдено</strong> — звертається до API <a href="https://api.conp.com.ua" target="_blank">api.conp.com.ua</a> (Суд на долоні)</li>
+        <li><strong>Якщо API недоступний</strong> — показує посилання на <a href="https://court.gov.ua/sudova-vlada/sudy/" target="_blank">court.gov.ua</a></li>
+    </ol>
+    <p><a href="/address-search" class="btn btn-success">Перейти до пошуку суду</a></p>
+</div>
+{% endblock %}
