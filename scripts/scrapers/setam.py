@@ -1,8 +1,15 @@
 """Scraper for SETAM (setam.net.ua) — the State Enterprise for Auctions.
 
 SETAM publishes auctions of seized property, NPL portfolios, and various
-asset lots.  The platform exposes a public JSON search API that this module
-queries to locate NPL-related lots.
+asset lots.  SETAM does NOT have a documented public JSON API.  This module
+scrapes the HTML auction listing page and uses the ProZorro.Sale integration
+for structured data.
+
+Known real SETAM pages (verified April 2026):
+- https://setam.net.ua/auctions — listing of all active lots
+- https://setam.net.ua/auction/{id} — individual lot page
+- https://setam.net.ua/pravila-torgiv-privatbank-prava-vymogy — PrivatBank NPL rules
+- https://setam.net.ua/poryadok-fgvfo — DGF procedure
 """
 
 from __future__ import annotations
@@ -15,9 +22,9 @@ from scripts.scrapers.base import BaseScraper
 
 LOGGER = logging.getLogger(__name__)
 
-# SETAM public search API
-SETAM_SEARCH_URL = "https://setam.net.ua/api/auction/search"
-SETAM_LOT_URL = "https://setam.net.ua/api/auction/"
+# SETAM does NOT have a public JSON API.
+# Listing page for all auctions:
+SETAM_AUCTIONS_URL = "https://setam.net.ua/auctions"
 SETAM_BASE = "https://setam.net.ua"
 
 # Keywords that indicate NPL / rights-of-claim portfolios
@@ -35,48 +42,43 @@ NPL_KEYWORDS = [
 
 
 class SetamScraper(BaseScraper):
-    """Scrape SETAM for NPL portfolio auctions."""
+    """Scrape SETAM HTML pages for NPL portfolio auctions.
 
-    def search_npl(
-        self,
-        page: int = 1,
-        per_page: int = 50,
-        status: str = "",
-    ) -> List[Dict[str, Any]]:
-        """Search SETAM for lots matching NPL keywords.
+    SETAM does NOT provide a public JSON API.  We scrape the HTML listing
+    page (https://setam.net.ua/auctions) and filter by NPL keywords.
+    """
 
-        Returns raw lot dicts from the SETAM API.
+    def search_npl(self) -> List[Dict[str, Any]]:
+        """Scrape SETAM auction listing page for NPL-related lots.
+
+        Returns a list of dicts with keys: title, url, source.
         """
+        from scripts.scrapers.base import extract_links
+
+        html = self.safe_fetch(SETAM_AUCTIONS_URL)
+        if not html:
+            return []
+
+        # Extract all links and filter for NPL-related ones
+        all_links = extract_links(html, SETAM_BASE, keywords=NPL_KEYWORDS)
         results: List[Dict[str, Any]] = []
-
-        for keyword in NPL_KEYWORDS:
-            params = {
-                "query": keyword,
-                "page": page,
-                "perPage": per_page,
-            }
-            if status:
-                params["status"] = status
-
-            data = self.safe_fetch_json(SETAM_SEARCH_URL, params)
-            if not data:
+        seen_urls = set()
+        for text, href in all_links:
+            if href in seen_urls:
                 continue
+            seen_urls.add(href)
+            results.append({
+                "title": text,
+                "url": href,
+                "source": "setam",
+            })
 
-            items = data if isinstance(data, list) else data.get("items", data.get("data", []))
-            if isinstance(items, list):
-                for item in items:
-                    if isinstance(item, dict) and item.get("id"):
-                        # Avoid duplicates by external_id
-                        if not any(r.get("id") == item["id"] for r in results):
-                            results.append(item)
-
-            LOGGER.info("SETAM search '%s': found %d items", keyword, len(items) if isinstance(items, list) else 0)
-
+        LOGGER.info("SETAM HTML scan: found %d NPL-related links", len(results))
         return results
 
-    def get_lot_details(self, lot_id: str) -> Optional[Dict[str, Any]]:
-        """Fetch full details for a specific SETAM lot."""
-        return self.safe_fetch_json(f"{SETAM_LOT_URL}{lot_id}")
+    def get_lot_page(self, lot_url: str) -> Optional[str]:
+        """Fetch the full HTML of a lot page for further parsing."""
+        return self.safe_fetch(lot_url)
 
     def parse_lot(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize a SETAM lot dict into our standard auction format."""

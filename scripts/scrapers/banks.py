@@ -254,13 +254,7 @@ BANK_REGISTRY: List[BankConfig] = [
         website="https://accordbank.com.ua",
         url_verified=True,
     ),
-    BankConfig(
-        name="АТ «Банк Січ»",
-        short_name="Банк Січ",
-        bank_type="private_bank",
-        website="https://nbsich.com",
-        url_verified=True,
-    ),
+    # Банк Січ — ліквідований НБУ 06.10.2022, перенесений до DGF_LIQUIDATED_BANKS
     BankConfig(
         name="АТ «Полікомбанк»",
         short_name="Полікомбанк",
@@ -306,13 +300,7 @@ BANK_REGISTRY: List[BankConfig] = [
         url_verified=True,
         notes="Велика МФО. Шукати згадки продажу портфелів у квартальних звітах.",
     ),
-    BankConfig(
-        name="ТОВ «CCloan»",
-        short_name="CCloan",
-        bank_type="mfo",
-        website="https://ccloan.ua",
-        url_verified=True,
-    ),
+    # CCloan — ліцензія відкликана НБУ, компанія не працює
     BankConfig(
         name="ТОВ «КредитМаркет»",
         short_name="КредитМаркет",
@@ -320,13 +308,7 @@ BANK_REGISTRY: List[BankConfig] = [
         website="https://creditmarket.ua",
         url_verified=True,
     ),
-    BankConfig(
-        name="ТОВ «Dinero»",
-        short_name="Dinero",
-        bank_type="mfo",
-        website="https://dinero.ua",
-        url_verified=True,
-    ),
+    # Dinero — ліцензія відкликана НБУ 01.12.2020, компанія не працює
     BankConfig(
         name="ТОВ «Aventus» (Швидко Гроші)",
         short_name="Aventus",
@@ -383,7 +365,7 @@ BANK_REGISTRY: List[BankConfig] = [
         name="ТОВ «ФК Укрборг»",
         short_name="Укрборг",
         bank_type="fc",
-        website="https://ukrborg.com.ua",
+        website="https://ukrborg.ua",
         url_verified=False,
         notes="Велика ФК, активний покупець портфелів ПриватБанку та ФГВ. "
               "Перевірити через ЄДРПОУ в судовому реєстрі — масові позови = активна робота з NPL.",
@@ -414,7 +396,7 @@ AUCTION_PLATFORMS = [
     {
         "name": "SETAM — Система електронних торгів арештованим майном",
         "url": "https://setam.net.ua",
-        "search_url": "https://setam.net.ua/search/lots",
+        "search_url": "https://setam.net.ua/auctions",
         "description": "ДП СЕТАМ — офіційна платформа для продажу арештованого та конфіскованого майна, "
                        "включаючи портфелі прав вимоги.",
         "type": "state",
@@ -795,6 +777,7 @@ DGF_LIQUIDATED_BANKS = [
     {"name": "ПАТ «Діамантбанк»", "year_liquidation_start": 2017},
     {"name": "ПАТ «Банк Богуслав»", "year_liquidation_start": 2016},
     {"name": "ПАТ «Укрінбанк»", "year_liquidation_start": 2015},
+    {"name": "АТ «Банк Січ»", "year_liquidation_start": 2022},
 ]
 
 

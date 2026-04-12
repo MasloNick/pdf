@@ -199,13 +199,8 @@ def auctions_scan():
     try:
         from scripts.scrapers.setam import SetamScraper
         scraper = SetamScraper(timeout=15, max_retries=2)
-        raw_items = scraper.search_npl(per_page=20)
-        for raw in raw_items:
-            parsed = scraper.parse_lot(raw)
-            results["setam"].append(parsed)
-            # Save to DB
-            with get_db() as conn:
-                AuctionRecord(**{k: v for k, v in parsed.items() if k != "raw_data"}).save(conn)
+        raw_items = scraper.search_npl()  # HTML scraping, no API
+        results["setam"] = raw_items
         results["errors"].extend(scraper.errors)
     except Exception as exc:
         results["errors"].append(f"SETAM: {exc}")

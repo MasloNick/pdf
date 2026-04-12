@@ -14,8 +14,10 @@ from scripts.scrapers.base import BaseScraper
 LOGGER = logging.getLogger(__name__)
 
 # ProZorro.Sale public API endpoints
+# Docs: https://procedure-staging.prozorro.sale/api/doc
+# Real search: https://procedure.prozorro.sale/api/search/byDateModified/{date}?limit=100
 PROZORRO_API = "https://procedure.prozorro.sale/api"
-PROZORRO_SEARCH = f"{PROZORRO_API}/procedures"
+PROZORRO_SEARCH = f"{PROZORRO_API}/search/byDateModified"
 PROZORRO_BASE = "https://prozorro.sale"
 
 # DGF-specific search (assets of liquidated banks)
@@ -36,33 +38,43 @@ class ProzorroScraper(BaseScraper):
     def search_npl(
         self,
         limit: int = 100,
-        status: str = "",
+        date_from: str = "",
     ) -> List[Dict[str, Any]]:
-        """Search ProZorro.Sale for NPL lots."""
+        """Search ProZorro.Sale for NPL lots.
+
+        The ProZorro.Sale API does NOT support keyword search.  The real
+        endpoint is ``/api/search/byDateModified/{iso_date}?limit=N``
+        which returns procedures modified since *date_from*.  We fetch a
+        batch and then filter locally by NPL keywords.
+        """
+        if not date_from:
+            # Default: look at procedures modified in the last 90 days
+            import datetime
+            date_from = (datetime.date.today() - datetime.timedelta(days=90)).isoformat()
+
+        url = f"{PROZORRO_SEARCH}/{date_from}"
+        data = self.safe_fetch_json(url, {"limit": limit})
+        if not data:
+            return []
+
+        items = data if isinstance(data, list) else data.get("items", data.get("data", []))
+        if not isinstance(items, list):
+            return []
+
+        # Filter by NPL-related keywords in title/description
         results: List[Dict[str, Any]] = []
-
-        for term in NPL_SEARCH_TERMS:
-            params: Dict[str, Any] = {
-                "query": term,
-                "limit": limit,
-            }
-            if status:
-                params["status"] = status
-
-            data = self.safe_fetch_json(PROZORRO_SEARCH, params)
-            if not data:
+        for item in items:
+            if not isinstance(item, dict):
                 continue
+            text = (
+                str(item.get("title", "")) + " " + str(item.get("description", ""))
+            ).lower()
+            if any(term in text for term in NPL_SEARCH_TERMS):
+                ext_id = item.get("id") or item.get("_id")
+                if ext_id and not any(r.get("id") == ext_id for r in results):
+                    results.append(item)
 
-            items = data if isinstance(data, list) else data.get("items", data.get("data", []))
-            if isinstance(items, list):
-                for item in items:
-                    if isinstance(item, dict):
-                        ext_id = item.get("id") or item.get("_id")
-                        if ext_id and not any(r.get("id") == ext_id for r in results):
-                            results.append(item)
-
-            LOGGER.info("ProZorro search '%s': found %d items", term, len(items) if isinstance(items, list) else 0)
-
+        LOGGER.info("ProZorro: fetched %d items, %d match NPL keywords", len(items), len(results))
         return results
 
     def get_procedure_details(self, procedure_id: str) -> Optional[Dict[str, Any]]:
