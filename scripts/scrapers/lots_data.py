@@ -2,6 +2,16 @@
 
 Each lot has category: active / watching / history.
 Sorted by date within each category (newest first).
+
+asset_type classification:
+- "npl_credit_unsecured" — права вимоги за беззаставними кредитами (банк продає NPL)
+- "npl_credit_secured"   — права вимоги за забезпеченими кредитами (іпотека, авто)
+- "npl_credit_mixed"     — змішаний портфель кредитів (забезпечені + беззаставні)
+- "npl_credit_corporate" — права вимоги за кредитами юр.осіб
+- "receivable"           — дебіторська заборгованість (борг контрагента підприємству)
+- "assignment"           — відступлення права вимоги (факторинг)
+- "asset_pool"           — пул активів (кредити + дебіторка + ОЗ + інше)
+- "mixed"                — змішаний (кредити + телеком + інше)
 """
 
 LOTS = [

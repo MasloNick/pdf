@@ -54,6 +54,40 @@ BROWSER_SOURCES = [
         "url": "https://sale.uub.com.ua/PositionList.aspx",
         "keywords": ["право вимоги", "кредитн", "дебіторськ", "портфель"],
     },
+    # --- Банки: сторінки продажу активів ---
+    {
+        "name": "ПриватБанк — продаж активів",
+        "url": "https://privatbank.ua/about/prodag-aktiviv",
+        "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив"],
+    },
+    {
+        "name": "Ощадбанк — продаж активів",
+        "url": "https://www.oschadbank.ua/sell-assets",
+        "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив", "тендер"],
+    },
+    {
+        "name": "Укрексімбанк — непрацюючі активи",
+        "url": "https://www.eximb.com/ua/about/non-performing-assets",
+        "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив", "нпл", "npl"],
+    },
+    # --- ФГВ торги ---
+    {
+        "name": "ФГВ — торги (torgi.fg.gov.ua)",
+        "url": "http://torgi.fg.gov.ua/",
+        "keywords": ["право вимоги", "кредитн", "портфель", "пул", "актив"],
+    },
+    # --- Судовий реєстр (відступлення) ---
+    {
+        "name": "Реєстр судових рішень — відступлення",
+        "url": "https://reyestr.court.gov.ua/",
+        "keywords": ["відступлення права вимоги", "кредитний портфель"],
+    },
+    # --- Clarity Project ---
+    {
+        "name": "Clarity Project — ProZorro.Sale",
+        "url": "https://clarity-project.info/prozorro-sale",
+        "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ"],
+    },
 ]
 
 

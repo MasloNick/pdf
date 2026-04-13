@@ -290,4 +290,67 @@ def get_known_lots() -> List[Dict[str, Any]]:
         except (ValueError, TypeError):
             pass
 
+    # Auto-classify asset_type based on text
+    for lot in combined:
+        if lot.get("asset_type"):
+            continue
+        lot["asset_type"] = _classify_asset_type(lot)
+
     return combined
+
+
+def _classify_asset_type(lot: Dict[str, Any]) -> str:
+    """Determine asset_type from lot text fields."""
+    text = " ".join([
+        lot.get("what", ""), lot.get("title", ""),
+        lot.get("seller", ""), lot.get("source", ""),
+    ]).lower()
+
+    # Пул активів (змішане: кредити + дебіторка + ОЗ)
+    if "пул актив" in text or ("кредит" in text and "дебіторськ" in text):
+        return "asset_pool"
+
+    # Змішане (кредити + телеком)
+    if "телеком" in text or ("кредит" in text and "телеком" in text):
+        return "mixed"
+
+    # Дебіторська заборгованість (борг контрагента підприємству, НЕ кредит)
+    if "дебіторськ" in text or "дебіторка" in text:
+        # Перевірка: якщо продавець банк/ФГВ — це скоріше NPL кредит
+        if any(w in text for w in ("банк", "фгв", "фонд гарантування", "приватбанк", "ощадбанк", "ексім")):
+            return "npl_credit_mixed"
+        return "receivable"
+
+    # Права вимоги за кредитами
+    if "кредитн" in text or "позичальник" in text or "кредит" in text:
+        if "юр" in text or "юридичн" in text:
+            return "npl_credit_corporate"
+        if "іпотек" in text or "забезпечен" in text or "автокредит" in text or "транспорт" in text:
+            return "npl_credit_secured"
+        if "беззастав" in text or "картков" in text or "споживч" in text or "фіз" in text:
+            return "npl_credit_unsecured"
+        return "npl_credit_mixed"
+
+    # Відступлення
+    if "відступлення" in text or "факторинг" in text:
+        return "assignment"
+
+    # Право вимоги загальне (зобов'язання в банкрутстві)
+    if "право вимоги" in text or "зобов'язання" in text:
+        return "receivable"
+
+    return "unknown"
+
+
+# Human-readable labels for asset_type
+ASSET_TYPE_LABELS = {
+    "npl_credit_unsecured": "Права вимоги за беззаставними кредитами",
+    "npl_credit_secured": "Права вимоги за забезпеченими кредитами (іпотека/авто)",
+    "npl_credit_corporate": "Права вимоги за кредитами юр.осіб",
+    "npl_credit_mixed": "Змішаний кредитний портфель",
+    "receivable": "Дебіторська заборгованість",
+    "assignment": "Відступлення права вимоги",
+    "asset_pool": "Пул активів (кредити + дебіторка + ОЗ)",
+    "mixed": "Змішаний (кредити + телеком + інше)",
+    "unknown": "Не класифіковано",
+}
