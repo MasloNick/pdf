@@ -17,77 +17,92 @@ from typing import Any, Dict, List
 
 LOGGER = logging.getLogger(__name__)
 
-# Джерела для парсингу з реальними URL
+# Джерела для парсингу — ВСІ доступні платформи
 BROWSER_SOURCES = [
-    {
-        "name": "ProZorro.Sale — право вимоги",
-        "url": "https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8",
-        "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ"],
-    },
-    {
-        "name": "ProZorro.Sale — кредитний портфель",
-        "url": "https://prozorro.sale/auction/search?query=%D0%BA%D1%80%D0%B5%D0%B4%D0%B8%D1%82%D0%BD%D0%B8%D0%B9+%D0%BF%D0%BE%D1%80%D1%82%D1%84%D0%B5%D0%BB%D1%8C",
-        "keywords": ["кредитн", "портфель", "право вимоги"],
-    },
-    {
-        "name": "ProZorro.Sale — дебіторська заборгованість",
-        "url": "https://prozorro.sale/auction/search?query=%D0%B4%D0%B5%D0%B1%D1%96%D1%82%D0%BE%D1%80%D1%81%D1%8C%D0%BA%D0%B0+%D0%B7%D0%B0%D0%B1%D0%BE%D1%80%D0%B3%D0%BE%D0%B2%D0%B0%D0%BD%D1%96%D1%81%D1%82%D1%8C",
-        "keywords": ["дебіторськ", "заборгован", "право вимоги"],
-    },
-    {
-        "name": "SETAM — всі торги",
-        "url": "https://setam.net.ua/auctions",
-        "keywords": ["право вимоги", "кредитн", "портфель"],
-    },
-    {
-        "name": "UBIZ.UA — фінанси",
-        "url": "https://ubiz.ua/auctions-all/finance",
-        "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ", "відступлення"],
-    },
-    {
-        "name": "ФГВ — продаж активів",
-        "url": "https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv",
-        "keywords": ["право вимоги", "портфель", "кредитн", "пул актив", "реалізація"],
-    },
-    {
-        "name": "UUB — банкрутство",
-        "url": "https://sale.uub.com.ua/PositionList.aspx",
-        "keywords": ["право вимоги", "кредитн", "дебіторськ", "портфель"],
-    },
-    # --- Банки: сторінки продажу активів ---
-    {
-        "name": "ПриватБанк — продаж активів",
-        "url": "https://privatbank.ua/about/prodag-aktiviv",
-        "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив"],
-    },
-    {
-        "name": "Ощадбанк — продаж активів",
-        "url": "https://www.oschadbank.ua/sell-assets",
-        "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив", "тендер"],
-    },
-    {
-        "name": "Укрексімбанк — непрацюючі активи",
-        "url": "https://www.eximb.com/ua/about/non-performing-assets",
-        "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив", "нпл", "npl"],
-    },
-    # --- ФГВ торги ---
-    {
-        "name": "ФГВ — торги (torgi.fg.gov.ua)",
-        "url": "http://torgi.fg.gov.ua/",
-        "keywords": ["право вимоги", "кредитн", "портфель", "пул", "актив"],
-    },
-    # --- Судовий реєстр (відступлення) ---
-    {
-        "name": "Реєстр судових рішень — відступлення",
-        "url": "https://reyestr.court.gov.ua/",
-        "keywords": ["відступлення права вимоги", "кредитний портфель"],
-    },
-    # --- Clarity Project ---
-    {
-        "name": "Clarity Project — ProZorro.Sale",
-        "url": "https://clarity-project.info/prozorro-sale",
-        "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ"],
-    },
+    # === ТОРГОВІ ПЛАТФОРМИ ===
+    {"name": "ProZorro.Sale — право вимоги",
+     "url": "https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8",
+     "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ"]},
+    {"name": "ProZorro.Sale — кредитний портфель",
+     "url": "https://prozorro.sale/auction/search?query=%D0%BA%D1%80%D0%B5%D0%B4%D0%B8%D1%82%D0%BD%D0%B8%D0%B9+%D0%BF%D0%BE%D1%80%D1%82%D1%84%D0%B5%D0%BB%D1%8C",
+     "keywords": ["кредитн", "портфель", "право вимоги"]},
+    {"name": "ProZorro.Sale — дебіторська",
+     "url": "https://prozorro.sale/auction/search?query=%D0%B4%D0%B5%D0%B1%D1%96%D1%82%D0%BE%D1%80%D1%81%D1%8C%D0%BA%D0%B0+%D0%B7%D0%B0%D0%B1%D0%BE%D1%80%D0%B3%D0%BE%D0%B2%D0%B0%D0%BD%D1%96%D1%81%D1%82%D1%8C",
+     "keywords": ["дебіторськ", "заборгован", "право вимоги"]},
+    {"name": "ProZorro.Sale — відступлення",
+     "url": "https://prozorro.sale/auction/search?query=%D0%B2%D1%96%D0%B4%D1%81%D1%82%D1%83%D0%BF%D0%BB%D0%B5%D0%BD%D0%BD%D1%8F",
+     "keywords": ["відступлення", "право вимоги", "кредитн"]},
+    {"name": "SETAM — всі торги",
+     "url": "https://setam.net.ua/auctions",
+     "keywords": ["право вимоги", "кредитн", "портфель"]},
+    {"name": "UBIZ.UA — фінанси",
+     "url": "https://ubiz.ua/auctions-all/finance",
+     "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ", "відступлення"]},
+    {"name": "UUB — всі лоти",
+     "url": "https://sale.uub.com.ua/PositionList.aspx",
+     "keywords": ["право вимоги", "кредитн", "дебіторськ", "портфель"]},
+    {"name": "E-Tender — ProZorro.Sale",
+     "url": "https://e-tender.ua/prozorro-prodagy",
+     "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ"]},
+
+    # === ФГВ (Фонд гарантування вкладів) ===
+    {"name": "ФГВ — продаж активів",
+     "url": "https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv",
+     "keywords": ["право вимоги", "портфель", "кредитн", "пул актив", "реалізація"]},
+    {"name": "ФГВ — торги",
+     "url": "http://torgi.fg.gov.ua/",
+     "keywords": ["право вимоги", "кредитн", "портфель", "пул", "актив"]},
+    {"name": "ФГВ — новини",
+     "url": "https://www.fg.gov.ua/news",
+     "keywords": ["право вимоги", "продаж актив", "реалізація", "портфель", "аукціон"]},
+
+    # === ДЕРЖАВНІ БАНКИ ===
+    {"name": "ПриватБанк — продаж активів",
+     "url": "https://privatbank.ua/about/prodag-aktiviv",
+     "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив", "тендер"]},
+    {"name": "Ощадбанк — продаж активів",
+     "url": "https://www.oschadbank.ua/sell-assets",
+     "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив", "тендер"]},
+    {"name": "Укрексімбанк — непрацюючі активи",
+     "url": "https://www.eximb.com/ua/about/non-performing-assets",
+     "keywords": ["право вимоги", "портфель", "кредитн", "продаж", "актив", "npl"]},
+    {"name": "Укргазбанк — новини",
+     "url": "https://www.ukrgasbank.com/about/news/",
+     "keywords": ["право вимоги", "продаж", "актив", "портфель", "тендер"]},
+
+    # === ПРИВАТНІ БАНКИ ===
+    {"name": "ПУМБ — новини",
+     "url": "https://pumb.ua/uk/about/news",
+     "keywords": ["право вимоги", "продаж", "актив", "портфель", "тендер", "npl"]},
+    {"name": "Сенс Банк — новини",
+     "url": "https://sensbank.com.ua/about/news",
+     "keywords": ["право вимоги", "продаж", "актив", "портфель"]},
+    {"name": "Креді Агріколь — прес-центр",
+     "url": "https://credit-agricole.ua/about/press-center",
+     "keywords": ["право вимоги", "продаж", "актив", "портфель", "тендер", "акредит"]},
+    {"name": "Райффайзен — новини",
+     "url": "https://raiffeisen.ua/about/news",
+     "keywords": ["право вимоги", "продаж", "актив", "портфель"]},
+    {"name": "ОТП Банк — новини",
+     "url": "https://en.otpbank.com.ua/about/news/",
+     "keywords": ["право вимоги", "продаж", "актив", "портфель"]},
+    {"name": "Укрсиббанк — новини",
+     "url": "https://ukrsibbank.com/about/news",
+     "keywords": ["право вимоги", "продаж", "актив", "портфель"]},
+
+    # === АНАЛІТИКА / РЕЄСТРИ ===
+    {"name": "АМКУ — концентрації",
+     "url": "https://amcu.gov.ua/napryami/konkurentne-zakonodavstvo/kontsentratsiyi",
+     "keywords": ["відступлення", "право вимоги", "кредитний портфель", "фінансова компанія"]},
+    {"name": "НКЦПФР — розкриття інформації",
+     "url": "https://stockmarket.gov.ua",
+     "keywords": ["відступлення", "право вимоги", "портфель", "факторинг"]},
+    {"name": "Clarity Project — ProZorro.Sale",
+     "url": "https://clarity-project.info/prozorro-sale",
+     "keywords": ["право вимоги", "кредитн", "портфель", "дебіторськ"]},
+    {"name": "OpenDataBot — суди",
+     "url": "https://court.opendatabot.ua",
+     "keywords": ["відступлення права вимоги", "кредитний портфель"]},
 ]
 
 
