@@ -256,14 +256,19 @@ def auctions_scan():
 
     if mode == "browser":
         # Deep scan with Playwright browser
-        from scripts.scrapers.browser_scraper import scan_with_browser
-        browser_data = scan_with_browser(timeout_ms=20000)
-        for lot in browser_data["lots"]:
-            if not any(l["url"] == lot["url"] for l in all_lots):
-                all_lots.append(lot)
-        errors.extend(browser_data["errors"])
-        flash(f"Глибоке сканування: {browser_data['sources_scanned']} джерел, "
-              f"знайдено {len(browser_data['lots'])} нових лотів.")
+        try:
+            from scripts.scrapers.browser_scraper import scan_with_browser
+            browser_data = scan_with_browser(timeout_ms=20000)
+            for lot in browser_data["lots"]:
+                if not any(l["url"] == lot["url"] for l in all_lots):
+                    all_lots.append(lot)
+            errors.extend(browser_data["errors"])
+            flash(f"Глибоке сканування: {browser_data['sources_scanned']} джерел, "
+                  f"знайдено {len(browser_data['lots'])} нових лотів.")
+        except Exception as exc:
+            flash(f"Помилка браузерного сканування: {exc}. "
+                  f"Встановіть: pip install playwright && playwright install chromium")
+            errors.append(str(exc))
     else:
         # Fast scan with urllib (basic)
         scraper = AuctionScraper(timeout=10, max_retries=1)
