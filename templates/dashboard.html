@@ -1,163 +1,144 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- HEADER -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-    <div>
-        <h2 style="margin:0;font-size:1.4rem;">NPL Hunter</h2>
-        <p style="color:var(--text2);font-size:0.82rem;margin-top:2px;">67 джерел | Останнє оновлення: зараз</p>
+{# === LOT CARD MACRO === #}
+{% macro lot_card(lot, color="green") %}
+<details class="lot-card" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden;">
+    <summary style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;list-style:none;">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+            <span class="tag tag-{{ color }}" style="flex-shrink:0;font-size:0.68rem;">{{ lot.source[:12] }}</span>
+            <div style="min-width:0;">
+                <div style="font-weight:600;font-size:0.88rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    {{ lot.seller or '—' }}{% if lot.num_contracts %} <span style="color:var(--text2);font-weight:400;font-size:0.78rem;">| {{ lot.num_contracts }} дог.</span>{% endif %}
+                </div>
+                <div style="font-size:0.76rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ (lot.what or lot.title)[:90] }}</div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            {% if lot.total_debt %}<span style="font-weight:700;font-size:0.88rem;">{{ fmt_uah(lot.total_debt) }}</span>{% elif lot.start_price %}<span style="font-weight:700;font-size:0.88rem;">{{ fmt_uah(lot.start_price) }}</span>{% endif %}
+            {% if lot.auction_date %}<span class="tag tag-{{ color }}" style="font-size:0.7rem;">{{ lot.auction_date }}</span>{% endif %}
+            <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;" onclick="event.stopPropagation();">&#8599;</a>
+        </div>
+    </summary>
+    <div style="padding:0 14px 12px;border-top:1px solid var(--border);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;margin-top:8px;font-size:0.8rem;">
+            {% if lot.start_price %}<div style="background:var(--bg3);padding:5px 8px;border-radius:4px;"><span style="color:var(--text2);">Старт:</span> <strong>{{ fmt_uah(lot.start_price) }}</strong></div>{% endif %}
+            {% if lot.guarantee %}<div style="background:var(--bg3);padding:5px 8px;border-radius:4px;"><span style="color:var(--text2);">Гарант:</span> <strong style="color:var(--orange);">{{ lot.guarantee }}</strong></div>{% endif %}
+            {% if lot.auction_type %}<div style="background:var(--bg3);padding:5px 8px;border-radius:4px;">{{ lot.auction_type }}</div>{% endif %}
+            {% if lot.auction_date %}<div style="background:var(--bg3);padding:5px 8px;border-radius:4px;"><strong>Дата: {{ lot.auction_date }}</strong></div>{% endif %}
+        </div>
+        {% if lot.asset_label %}
+        <div style="margin-top:6px;padding:6px 8px;background:var(--bg3);border-radius:4px;font-size:0.78rem;">
+            <span style="color:var(--accent);font-weight:600;">{{ lot.asset_label }}</span>
+            {% if lot.what_you_buy %}<div style="color:var(--text2);margin-top:2px;">{{ lot.what_you_buy[:120] }}</div>{% endif %}
+            {% if lot.risks %}<div style="color:var(--orange);margin-top:2px;">&#9888; {{ lot.risks[:100] }}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% if lot.sold_price %}<div style="margin-top:4px;font-size:0.82rem;color:var(--green);">Продано: {{ fmt_uah(lot.sold_price) }} ({{ lot.sold_pct }}%)</div>{% endif %}
     </div>
-    <div style="display:flex;gap:8px;">
-        <a href="/auctions/scan" class="btn btn-primary" id="scanBtn" onclick="showScanning()">&#8635; Оновити</a>
-        <a href="/auctions/scan?mode=browser" class="btn btn-outline" onclick="showScanning()">&#9881; Глибоке</a>
+</details>
+{% endmacro %}
+
+{# === SECTION MACRO === #}
+{% macro section(title, lots, badge_color="green", badge_text="", collapsed=false) %}
+{% if lots %}
+<div style="{% if not collapsed %}background:linear-gradient(135deg, rgba({% if badge_color == 'green' %}34,197,94{% elif badge_color == 'orange' %}245,158,11{% elif badge_color == 'blue' %}59,130,246{% else %}139,143,167{% endif %},0.06), transparent);border:1px solid rgba({% if badge_color == 'green' %}34,197,94{% elif badge_color == 'orange' %}245,158,11{% elif badge_color == 'blue' %}59,130,246{% else %}139,143,167{% endif %},0.2);{% endif %}border-radius:10px;padding:14px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="background:var(--{{ badge_color }});color:{% if badge_color == 'orange' %}#000{% else %}#fff{% endif %};padding:3px 12px;border-radius:5px;font-size:0.75rem;font-weight:700;">{{ badge_text or title|upper }}</span>
+        <span style="font-weight:600;font-size:0.95rem;">{{ title }} ({{ lots|length }})</span>
+    </div>
+    {% for lot in lots %}{{ lot_card(lot, badge_color) }}{% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+<!-- HEADER -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+    <div>
+        <h2 style="margin:0;font-size:1.3rem;">NPL Hunter</h2>
+        <p style="color:var(--text2);font-size:0.8rem;margin-top:2px;">93 джерела | {{ active_lots|length }} актуальних | {{ watching_lots|length }} спостереження | {{ history_lots|length }} історія</p>
+    </div>
+    <div style="display:flex;gap:6px;">
+        <a href="/auctions/scan" class="btn btn-primary">&#8635; Оновити</a>
+        <a href="/auctions/scan?mode=browser" class="btn btn-outline">&#9881; Глибоке</a>
         <a href="/auctions/export" class="btn btn-success">&#128196; Excel</a>
     </div>
 </div>
 
-<!-- SCANNING INDICATOR (hidden by default) -->
-<div id="scanIndicator" style="display:none;background:linear-gradient(90deg,var(--accent),var(--blue));padding:12px 20px;border-radius:8px;margin-bottom:16px;animation:pulse 1.5s infinite;">
-    <div style="color:#fff;font-weight:600;">&#8987; Йде сканування 67 джерел...</div>
-    <div style="color:rgba(255,255,255,0.7);font-size:0.82rem;">ProZorro, SETAM, ФГВФО, банки, майданчики, реєстри</div>
+<div id="scanIndicator" style="display:none;background:linear-gradient(90deg,var(--accent),var(--blue));padding:10px 16px;border-radius:8px;margin-bottom:12px;animation:pulse 1.5s infinite;">
+    <span style="color:#fff;font-weight:600;">&#8987; Сканування 93 джерел...</span>
 </div>
 
-<!-- ==================== АКТУАЛЬНІ — зелений блок ==================== -->
-{% if active_lots %}
-<div style="background:linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.3);border-radius:12px;padding:16px;margin-bottom:16px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="background:var(--green);color:#fff;padding:5px 16px;border-radius:6px;font-size:0.82rem;font-weight:700;animation:pulse 2s infinite;">LIVE</span>
-        <h2 style="margin:0;color:var(--green);">Актуальні ({{ active_lots|length }})</h2>
+<!-- ЗАПЛАНОВАНІ АУКЦІОНИ (з датою) -->
+{{ section("Заплановані аукціони", scheduled_lots, "green", "SCHEDULED") }}
+
+<!-- ПОРТФЕЛІ (>1 договір) -->
+{{ section("Портфелі / пули активів", portfolio_lots, "blue", "PORTFOLIO") }}
+
+<!-- ЮРИДИЧНІ ОСОБИ -->
+{{ section("Права вимоги — юридичні особи", legal_lots, "orange", "LEGAL") }}
+
+<!-- ФІЗИЧНІ ОСОБИ -->
+{{ section("Права вимоги — фізичні особи", physical_lots, "green", "PHYSICAL") }}
+
+<!-- ОКРЕМІ ЛОТИ (1 договір) -->
+{% if single_lots %}
+<details style="margin-bottom:12px;">
+    <summary style="cursor:pointer;padding:8px 0;color:var(--text2);font-size:0.88rem;">&#9660; Окремі лоти — 1 договір ({{ single_lots|length }})</summary>
+    <div style="margin-top:6px;">
+    {% for lot in single_lots %}{{ lot_card(lot, "gray") }}{% endfor %}
     </div>
-
-    {% for lot in active_lots %}
-    <details class="lot-card" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
-        <summary style="padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;list-style:none;">
-            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-                <span class="tag tag-blue" style="flex-shrink:0;font-size:0.7rem;">{{ lot.source[:15] }}</span>
-                <div style="min-width:0;">
-                    <div style="font-weight:600;font-size:0.9rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ lot.seller or '—' }}</div>
-                    <div style="font-size:0.78rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ lot.what[:80] }}</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
-                {% if lot.total_debt %}<span style="font-weight:700;color:var(--text);font-size:0.9rem;">{{ fmt_uah(lot.total_debt) }}</span>{% endif %}
-                {% if lot.num_contracts %}<span class="tag tag-gray">{{ lot.num_contracts }} дог.</span>{% endif %}
-                <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:4px 10px;font-size:0.78rem;" onclick="event.stopPropagation();">&#8599;</a>
-            </div>
-        </summary>
-        <div style="padding:0 16px 14px;border-top:1px solid var(--border);">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:10px;font-size:0.82rem;">
-                {% if lot.start_price %}<div style="background:var(--bg3);padding:6px 10px;border-radius:6px;"><span style="color:var(--text2);">Стартова:</span> <strong>{{ fmt_uah(lot.start_price) }}</strong></div>{% endif %}
-                {% if lot.guarantee %}<div style="background:var(--bg3);padding:6px 10px;border-radius:6px;"><span style="color:var(--text2);">Гарантійний:</span> <strong style="color:var(--orange);">{{ lot.guarantee }}</strong></div>{% endif %}
-                {% if lot.auction_type %}<div style="background:var(--bg3);padding:6px 10px;border-radius:6px;"><span style="color:var(--text2);">Тип:</span> {{ lot.auction_type }}</div>{% endif %}
-                {% if lot.auction_date %}<div style="background:var(--bg3);padding:6px 10px;border-radius:6px;"><span style="color:var(--text2);">Дата:</span> <strong>{{ lot.auction_date }}</strong></div>{% endif %}
-            </div>
-            {% if lot.asset_label %}
-            <div style="margin-top:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;font-size:0.8rem;">
-                <div style="color:var(--accent);font-weight:600;margin-bottom:4px;">{{ lot.asset_label }}</div>
-                {% if lot.what_you_buy %}<div style="color:var(--text2);">{{ lot.what_you_buy[:150] }}</div>{% endif %}
-                {% if lot.risks %}<div style="color:var(--orange);margin-top:4px;">&#9888; {{ lot.risks[:120] }}</div>{% endif %}
-            </div>
-            {% endif %}
-            <div style="margin-top:8px;"><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="font-size:0.82rem;">Відкрити лот &#8599;</a></div>
-        </div>
-    </details>
-    {% endfor %}
-</div>
+</details>
 {% endif %}
 
-<!-- ==================== НА СПОСТЕРЕЖЕННІ ==================== -->
-{% if watching_lots %}
-<div style="background:linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px;margin-bottom:16px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="background:var(--orange);color:#000;padding:5px 16px;border-radius:6px;font-size:0.82rem;font-weight:700;">WATCH</span>
-        <h2 style="margin:0;color:var(--orange);">На спостереженні ({{ watching_lots|length }})</h2>
-    </div>
+<!-- НА СПОСТЕРЕЖЕННІ -->
+{{ section("На спостереженні — очікується перевиставлення", watching_lots, "orange", "WATCH") }}
 
-    {% for lot in watching_lots %}
-    <details class="lot-card" style="background:var(--surface);border:1px solid rgba(245,158,11,0.2);border-radius:8px;margin-bottom:8px;overflow:hidden;">
-        <summary style="padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;list-style:none;">
-            <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-                <span class="tag tag-orange" style="flex-shrink:0;font-size:0.7rem;">{{ lot.source[:15] }}</span>
-                <div style="min-width:0;">
-                    <div style="font-weight:600;font-size:0.9rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ lot.seller or '—' }}</div>
-                    <div style="font-size:0.78rem;color:var(--text2);">{{ lot.what[:80] }}</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                {% if lot.start_price %}<span style="font-weight:700;color:var(--orange);">{{ fmt_uah(lot.start_price) }}</span>{% endif %}
-                <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-warning" style="padding:4px 10px;font-size:0.78rem;" onclick="event.stopPropagation();">&#8599;</a>
-            </div>
-        </summary>
-        <div style="padding:0 16px 14px;border-top:1px solid var(--border);">
-            {% if lot.watch_reason %}<div style="background:var(--orange-bg);padding:8px;border-radius:6px;margin-top:8px;font-size:0.82rem;color:var(--orange);">&#9888; {{ lot.watch_reason }}</div>{% endif %}
-            {% if lot.guarantee %}<div style="margin-top:6px;font-size:0.82rem;color:var(--text2);">Гарантійний: <strong>{{ lot.guarantee }}</strong></div>{% endif %}
-            <div style="margin-top:8px;"><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-warning" style="font-size:0.82rem;">Перевірити &#8599;</a></div>
-        </div>
-    </details>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- ІНСТРУМЕНТИ + ПЛАТФОРМИ -->
-<div class="two-col">
-    <div class="card">
-        <h2 style="margin-bottom:12px;">Інструменти</h2>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <a href="/portfolio" class="btn btn-success" style="text-align:center;padding:12px;">&#9776; Аналіз портфеля</a>
-            <a href="/pricing" class="btn btn-warning" style="text-align:center;padding:12px;">&#8364; Калькулятор ціни</a>
-            <a href="/compare" class="btn btn-outline" style="text-align:center;padding:12px;">&#8646; Порівняти</a>
-            <a href="/check-company" class="btn btn-outline" style="text-align:center;padding:12px;">&#10004; ЄДРПОУ</a>
-            <a href="/courts" class="btn btn-outline" style="text-align:center;padding:12px;">&#9959; Суди</a>
-            <a href="/market" class="btn btn-outline" style="text-align:center;padding:12px;">&#9650; Ринок</a>
+<!-- ІНСТРУМЕНТИ -->
+<div class="two-col" style="margin-top:4px;">
+    <div class="card" style="padding:12px;">
+        <h2 style="margin-bottom:10px;font-size:0.95rem;">Інструменти</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <a href="/portfolio" class="btn btn-success" style="text-align:center;padding:10px;font-size:0.82rem;">&#9776; Аналіз</a>
+            <a href="/pricing" class="btn btn-warning" style="text-align:center;padding:10px;font-size:0.82rem;">&#8364; Ціна</a>
+            <a href="/compare" class="btn btn-outline" style="text-align:center;padding:10px;font-size:0.82rem;">&#8646; Порівняти</a>
+            <a href="/check-company" class="btn btn-outline" style="text-align:center;padding:10px;font-size:0.82rem;">&#10004; ЄДРПОУ</a>
         </div>
     </div>
-    <div class="card">
-        <h2 style="margin-bottom:12px;">Пошук на платформах</h2>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-            <a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" class="btn btn-primary" style="justify-content:center;">ProZorro — право вимоги</a>
-            <a href="https://setam.net.ua/auctions" target="_blank" class="btn btn-success" style="justify-content:center;">SETAM</a>
-            <a href="https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv" target="_blank" class="btn btn-warning" style="justify-content:center;">ФГВФО — активи</a>
-            <a href="https://ubiz.ua/auctions-all/finance" target="_blank" class="btn btn-outline" style="justify-content:center;">UBIZ</a>
+    <div class="card" style="padding:12px;">
+        <h2 style="margin-bottom:10px;font-size:0.95rem;">Платформи</h2>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+            <a href="https://prozorro.sale/auction/search?query=%D0%BF%D1%80%D0%B0%D0%B2%D0%BE+%D0%B2%D0%B8%D0%BC%D0%BE%D0%B3%D0%B8" target="_blank" class="btn btn-primary" style="justify-content:center;padding:8px;font-size:0.82rem;">ProZorro</a>
+            <a href="https://setam.net.ua/auctions" target="_blank" class="btn btn-success" style="justify-content:center;padding:8px;font-size:0.82rem;">SETAM</a>
+            <a href="https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv" target="_blank" class="btn btn-warning" style="justify-content:center;padding:8px;font-size:0.82rem;">ФГВФО</a>
         </div>
     </div>
 </div>
 
 <!-- ІСТОРІЯ -->
 {% if history_lots %}
-<details style="margin-top:16px;">
-    <summary style="cursor:pointer;color:var(--text2);font-size:0.9rem;padding:8px 0;">&#9660; Історія ({{ history_lots|length }}) — завершені продажі для аналітики</summary>
-    <div class="card" style="margin-top:8px;opacity:0.7;">
-        <table>
-            <tr><th>Продавець</th><th>Що</th><th>Продано за</th><th>% від старту</th><th>Дата</th><th></th></tr>
-            {% for lot in history_lots %}
-            <tr>
-                <td>{{ lot.seller or '—' }}</td>
-                <td style="max-width:250px;font-size:0.82rem;">{{ lot.what[:60] }}</td>
-                <td style="color:var(--green);">{% if lot.sold_price %}{{ fmt_uah(lot.sold_price) }}{% else %}—{% endif %}</td>
-                <td>{% if lot.sold_pct %}<strong>{{ lot.sold_pct }}%</strong>{% else %}—{% endif %}</td>
-                <td>{{ lot.auction_date or '—' }}</td>
-                <td><a href="{{ lot.url }}" target="_blank" class="btn btn-outline" style="padding:3px 8px;font-size:0.75rem;">&#8599;</a></td>
-            </tr>
-            {% endfor %}
-        </table>
+<details style="margin-top:8px;">
+    <summary style="cursor:pointer;color:var(--text2);font-size:0.85rem;padding:6px 0;">&#9660; Історія продажів ({{ history_lots|length }})</summary>
+    <div style="margin-top:6px;">
+    {% for lot in history_lots %}{{ lot_card(lot, "gray") }}{% endfor %}
     </div>
 </details>
 {% endif %}
 
 <style>
-@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.7;} }
-details.lot-card summary::-webkit-details-marker { display:none; }
-details.lot-card summary::before { content:"&#9654; "; font-size:0.7rem; color:var(--text2); margin-right:4px; }
-details.lot-card[open] summary::before { content:"&#9660; "; }
-details.lot-card summary:hover { background:rgba(99,102,241,0.05); }
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
+details.lot-card summary::-webkit-details-marker{display:none;}
+details.lot-card[open]{border-color:var(--accent);}
+details.lot-card summary:hover{background:rgba(99,102,241,0.04);}
 </style>
-
 <script>
-function showScanning(){
-    document.getElementById('scanIndicator').style.display='block';
-    document.getElementById('scanBtn').innerHTML='&#8987; Сканую...';
-    document.getElementById('scanBtn').style.pointerEvents='none';
-    document.getElementById('scanBtn').style.opacity='0.6';
-}
+document.querySelectorAll('a.btn').forEach(function(b){
+    b.addEventListener('click',function(){
+        var h=b.getAttribute('href')||'';
+        if(h.includes('/scan')||h.includes('/export')||h.includes('mode=browser')){
+            document.getElementById('scanIndicator').style.display='block';
+        }
+    });
+});
 </script>
 {% endblock %}

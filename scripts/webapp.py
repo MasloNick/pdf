@@ -171,9 +171,25 @@ def dashboard():
     watching_lots = [l for l in lots if l.get("category") == "watching"]
     history_lots = [l for l in lots if l.get("category") == "history"]
 
+    # Sub-categorize
+    def _has(lot, *words):
+        text = ((lot.get("asset_type") or "") + " " + (lot.get("what") or "")).lower()
+        return any(w in text for w in words)
+
+    scheduled = sorted([l for l in active_lots if l.get("auction_date")], key=lambda l: l["auction_date"])
+    legal_lots = [l for l in active_lots if _has(l, "corporate", "юр", "юридичн")]
+    physical_lots = [l for l in active_lots if _has(l, "unsecured", "фіз", "фізичн", "картков", "споживч")]
+    portfolio_lots = [l for l in active_lots if (l.get("num_contracts") or 0) > 1 or _has(l, "портфель", "пул")]
+    single_lots = [l for l in active_lots if (l.get("num_contracts") or 0) <= 1 and not _has(l, "портфель", "пул")]
+
     return render_template(
         "dashboard.html",
         active_lots=active_lots,
+        scheduled_lots=scheduled,
+        legal_lots=legal_lots,
+        physical_lots=physical_lots,
+        portfolio_lots=portfolio_lots,
+        single_lots=single_lots,
         watching_lots=watching_lots,
         history_lots=history_lots,
         asset_labels=ASSET_TYPE_LABELS,
