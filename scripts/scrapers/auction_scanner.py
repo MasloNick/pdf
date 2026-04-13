@@ -121,7 +121,7 @@ def get_known_lots() -> List[Dict[str, Any]]:
             continue
         try:
             lot_date = datetime.date.fromisoformat(date_str)
-            if lot_date < today:
+            if lot_date <= today:  # сьогодні = вже історія, актуальне тільки ЗАВТРА+
                 lot["category"] = "history"
                 if "status" not in lot or "продано" not in lot.get("status", "").lower():
                     lot["status"] = f"минув {date_str}"
