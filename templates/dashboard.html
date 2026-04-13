@@ -69,6 +69,18 @@
             {% endif %}
         </div>
 
+        <!-- Intelligence card -->
+        {% if lot.asset_label %}
+        <div style="margin-top:10px;padding:10px;background:var(--surface);border-radius:8px;border:1px solid var(--border);font-size:0.83rem;">
+            <div style="margin-bottom:6px;"><span class="tag tag-blue">{{ lot.asset_label }}</span></div>
+            {% if lot.what_you_buy %}<div style="color:var(--text);margin-bottom:4px;"><strong>Що купуєш:</strong> {{ lot.what_you_buy }}</div>{% endif %}
+            {% if lot.debtor_info %}<div style="color:var(--text2);margin-bottom:4px;"><strong>Боржник:</strong> {{ lot.debtor_info }}</div>{% endif %}
+            {% if lot.risks %}<div style="color:var(--orange);margin-bottom:4px;"><strong>Ризики:</strong> {{ lot.risks }}</div>{% endif %}
+            {% if lot.collection_strategy %}<div style="color:var(--text2);margin-bottom:4px;"><strong>Стратегія:</strong> {{ lot.collection_strategy }}</div>{% endif %}
+            {% if lot.recommendation_short %}<div style="color:var(--green);"><strong>Рекомендація:</strong> {{ lot.recommendation_short }}</div>{% endif %}
+        </div>
+        {% endif %}
+
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
             <span class="tag tag-green">{{ lot.status }}</span>
             <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:6px 16px;font-size:0.85rem;">Відкрити лот &#8599;</a>

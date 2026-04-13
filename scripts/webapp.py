@@ -160,9 +160,13 @@ app.jinja_env.globals["fmt_uah"] = _fmt_uah
 
 @app.route("/")
 def dashboard():
-    from scripts.scrapers.auction_scanner import get_known_lots
+    from scripts.scrapers.auction_scanner import get_known_lots, ASSET_TYPE_LABELS
+    from scripts.analysis.lot_intel import analyze_lot
 
     lots = get_known_lots()
+    # Enrich each lot with intelligence
+    lots = [analyze_lot(l) for l in lots]
+
     active_lots = [l for l in lots if l.get("category") == "active"]
     watching_lots = [l for l in lots if l.get("category") == "watching"]
     history_lots = [l for l in lots if l.get("category") == "history"]
@@ -172,6 +176,7 @@ def dashboard():
         active_lots=active_lots,
         watching_lots=watching_lots,
         history_lots=history_lots,
+        asset_labels=ASSET_TYPE_LABELS,
     )
 
 
