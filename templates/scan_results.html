@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
     <div>
         <h2 style="margin:0;font-size:1.4rem;">Торги NPL-портфелів</h2>
         <p style="color:var(--text2);font-size:0.85rem;margin-top:4px;">Права вимоги, кредитні портфелі, дебіторська заборгованість</p>
     </div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a href="/auctions/scan" class="btn btn-outline">&#8635; Швидке</a>
-        <a href="/auctions/scan?mode=browser" class="btn btn-primary">&#9881; Глибоке (браузер)</a>
-        <a href="/auctions/export" class="btn btn-success">&#128196; Скачати Excel</a>
+        <a href="/auctions/scan?mode=browser" class="btn btn-primary">&#9881; Глибоке</a>
+        <a href="/auctions/export" class="btn btn-success">&#128196; Excel</a>
+        <button class="btn btn-warning" onclick="copySelected()">&#128203; Копіювати відмічені</button>
     </div>
 </div>
 
@@ -18,134 +19,98 @@
 </div>
 {% endif %}
 
-<div class="stats-grid">
-    <div class="stat-card" style="border-left:3px solid var(--green);">
-        <div class="number">{{ lots|selectattr('category','equalto','active')|list|length }}</div>
-        <div class="label">Активних</div>
-    </div>
-    <div class="stat-card" style="border-left:3px solid var(--orange);">
-        <div class="number">{{ lots|selectattr('category','equalto','failed')|list|length }}</div>
-        <div class="label">Не відбулися</div>
-    </div>
-    <div class="stat-card" style="border-left:3px solid var(--text2);">
-        <div class="number">{{ lots|selectattr('category','equalto','history')|list|length }}</div>
-        <div class="label">Історія</div>
-    </div>
-    <div class="stat-card" style="border-left:3px solid var(--accent);">
-        <div class="number">{{ lots|length }}</div>
-        <div class="label">Всього</div>
+<!-- TOOLBAR: filter + sort + search -->
+<div class="card" style="padding:12px 16px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="searchInput" placeholder="Пошук по назві, продавцю..." oninput="filterTable()" style="flex:1;min-width:200px;margin:0;max-width:none;">
+        <select id="filterCategory" onchange="filterTable()" style="width:auto;min-width:150px;margin:0;">
+            <option value="">Всі категорії</option>
+            <option value="active">Активні</option>
+            <option value="watching">На спостереженні</option>
+            <option value="history">Історія</option>
+        </select>
+        <select id="filterSource" onchange="filterTable()" style="width:auto;min-width:150px;margin:0;">
+            <option value="">Всі джерела</option>
+            {% set sources = [] %}
+            {% for lot in lots %}{% if lot.source not in sources %}{% if sources.append(lot.source) %}{% endif %}{% endif %}{% endfor %}
+            {% for s in sources %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+        </select>
+        <select id="sortBy" onchange="sortTable()" style="width:auto;min-width:130px;margin:0;">
+            <option value="date-desc">Дата ↓</option>
+            <option value="date-asc">Дата ↑</option>
+            <option value="debt-desc">Борг ↓</option>
+            <option value="debt-asc">Борг ↑</option>
+            <option value="source">Джерело</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;color:var(--text2);margin:0;white-space:nowrap;">
+            <input type="checkbox" id="showOnlyMarked" onchange="filterTable()"> Тільки відмічені
+        </label>
     </div>
 </div>
 
-<!-- ==================== АКТУАЛЬНІ ==================== -->
-{% set active_lots = lots|selectattr('category','equalto','active')|list %}
-{% if active_lots %}
-<div class="card" style="border-left:3px solid var(--green);">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <span style="background:var(--green);color:#fff;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">АКТУАЛЬНІ</span>
-        <h2 style="margin:0;">Активні торги ({{ active_lots|length }})</h2>
+<!-- MAIN TABLE -->
+<div class="card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span id="countDisplay" style="color:var(--text2);font-size:0.85rem;"></span>
+        <button onclick="toggleAll()" class="btn btn-outline" style="padding:4px 10px;font-size:0.78rem;">Відмітити все</button>
     </div>
     <div style="overflow-x:auto;">
-    <table>
-        <tr><th>Джерело</th><th>Опис</th><th>Тип аукціону</th><th>Продавець</th><th>Сума / Ціна</th><th>Гарантійний</th><th>Дата</th><th></th></tr>
-        {% for lot in active_lots %}
+    <table id="lotsTable">
+        <thead>
         <tr>
-            <td><span class="tag tag-blue">{{ lot.source }}</span></td>
-            <td style="max-width:300px;">{{ lot.title }}</td>
+            <th style="width:30px;">&#9745;</th>
+            <th>Статус</th>
+            <th>Джерело</th>
+            <th>Що продається</th>
+            <th>Продавець</th>
+            <th>Борг / Ціна</th>
+            <th>Гарантійний</th>
+            <th>Тип аукціону</th>
+            <th>Дата</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for lot in lots %}
+        <tr data-category="{{ lot.category }}" data-source="{{ lot.source }}"
+            data-date="{{ lot.auction_date or lot.get('date','') }}"
+            data-debt="{{ lot.total_debt or lot.start_price or 0 }}"
+            data-text="{{ lot.title|lower }} {{ lot.what|lower if lot.what else '' }} {{ lot.seller|lower if lot.seller else '' }}">
+            <td><input type="checkbox" class="lot-check" data-url="{{ lot.url }}" data-title="{{ lot.title }}"></td>
+            <td>
+                {% if lot.category == 'active' %}<span class="tag tag-green">активний</span>
+                {% elif lot.category == 'watching' %}<span class="tag tag-orange">слідкуємо</span>
+                {% else %}<span class="tag tag-gray">історія</span>{% endif %}
+            </td>
+            <td><span class="tag tag-blue" style="font-size:0.72rem;">{{ lot.source }}</span></td>
+            <td style="max-width:280px;font-size:0.85rem;">
+                {{ lot.what or lot.title }}
+            </td>
+            <td style="font-size:0.85rem;">{{ lot.seller or '—' }}</td>
+            <td style="white-space:nowrap;font-size:0.85rem;">
+                {% if lot.total_debt %}{{ fmt_uah(lot.total_debt) }}{% elif lot.start_price %}{{ fmt_uah(lot.start_price) }}{% elif lot.price %}{{ lot.price }}{% else %}—{% endif %}
+                {% if lot.sold_price %}<br><span style="color:var(--green);font-size:0.8rem;">→ {{ fmt_uah(lot.sold_price) }} ({{ lot.sold_pct }}%)</span>{% endif %}
+            </td>
+            <td style="font-size:0.82rem;color:var(--orange);">{{ lot.guarantee or '—' }}</td>
             <td style="font-size:0.82rem;">{{ lot.auction_type or '—' }}</td>
-            <td>{{ lot.seller or '—' }}</td>
-            <td style="white-space:nowrap;">{{ lot.price or '—' }}</td>
-            <td style="font-size:0.82rem;">{{ lot.guarantee or '—' }}</td>
-            <td><span class="tag tag-green">{{ lot.date or lot.status }}</span></td>
-            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:5px 12px;font-size:0.8rem;">Відкрити</a></td>
+            <td style="white-space:nowrap;">
+                {% set d = lot.auction_date or lot.get('date','') %}
+                {% if d %}<strong>{{ d }}</strong>{% else %}—{% endif %}
+            </td>
+            <td>
+                <div style="display:flex;gap:4px;">
+                    <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:4px 10px;font-size:0.78rem;">&#8599;</a>
+                    <button onclick="copyOne('{{ lot.title }} — {{ lot.url }}')" class="btn btn-outline" style="padding:4px 8px;font-size:0.78rem;" title="Копіювати">&#128203;</button>
+                </div>
+            </td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
     </div>
 </div>
-{% endif %}
 
-<!-- ==================== НЕ ВІДБУЛИСЯ ==================== -->
-{% set failed_lots = lots|selectattr('category','equalto','failed')|list %}
-{% if failed_lots %}
-<div class="card" style="border-left:3px solid var(--orange);">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <span style="background:var(--orange);color:#000;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">УВАГА</span>
-        <h2 style="margin:0;">Не відбулися — можуть бути перевиставлені ({{ failed_lots|length }})</h2>
-    </div>
-    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px;">Ці аукціони не відбулися через відсутність учасників. Зазвичай перевиставляються зі зниженою ціною — слідкуйте!</p>
-    <div style="overflow-x:auto;">
-    <table>
-        <tr><th>Джерело</th><th>Опис</th><th>Продавець</th><th>Стартова ціна</th><th>Дата</th><th></th></tr>
-        {% for lot in failed_lots %}
-        <tr>
-            <td><span class="tag tag-orange">{{ lot.source }}</span></td>
-            <td style="max-width:350px;">{{ lot.title }}</td>
-            <td>{{ lot.seller or '—' }}</td>
-            <td style="white-space:nowrap;">{{ lot.price or '—' }}</td>
-            <td>{{ lot.date or '—' }}</td>
-            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-warning" style="padding:5px 12px;font-size:0.8rem;">Перевірити</a></td>
-        </tr>
-        {% endfor %}
-    </table>
-    </div>
-</div>
-{% endif %}
-
-<!-- ==================== ДОДАТКОВО ЗНАЙДЕНЕ СКРАПЕРОМ ==================== -->
-{% set scraped_total = 0 %}
-{% for key, items in scraped.items() %}{% set scraped_total = scraped_total + items|length %}{% endfor %}
-{% if scraped_total > 0 %}
-<div class="card" style="border-left:3px solid var(--accent);">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <span style="background:var(--accent);color:#fff;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">НОВЕ</span>
-        <h2 style="margin:0;">Знайдено скрапером</h2>
-    </div>
-    {% for key, items in scraped.items() %}
-    {% if items %}
-    <h3 style="margin-top:12px;">{{ key|upper }} ({{ items|length }})</h3>
-    <table>
-        <tr><th>Назва</th><th>Посилання</th></tr>
-        {% for item in items %}
-        <tr>
-            <td>{{ item.title }}</td>
-            <td><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.url[:60] }}...</a></td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% endif %}
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- ==================== ІСТОРІЯ ==================== -->
-{% set history_lots = lots|selectattr('category','equalto','history')|list %}
-{% if history_lots %}
-<div class="card" style="border-left:3px solid var(--text2);opacity:0.85;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <span style="background:var(--text2);color:#fff;padding:4px 12px;border-radius:6px;font-size:0.8rem;font-weight:700;">ІСТОРІЯ</span>
-        <h2 style="margin:0;">Завершені продажі — для аналітики цін ({{ history_lots|length }})</h2>
-    </div>
-    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px;">Ці торги вже завершені. Використовуйте для розуміння ринкових цін.</p>
-    <div style="overflow-x:auto;">
-    <table>
-        <tr><th>Джерело</th><th>Опис</th><th>Продавець</th><th>Результат</th><th>Дата</th><th></th></tr>
-        {% for lot in history_lots %}
-        <tr style="opacity:0.8;">
-            <td><span class="tag tag-gray">{{ lot.source }}</span></td>
-            <td style="max-width:350px;">{{ lot.title }}</td>
-            <td>{{ lot.seller or '—' }}</td>
-            <td style="white-space:nowrap;">{{ lot.price or '—' }}</td>
-            <td>{{ lot.date or '—' }}</td>
-            <td><a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-outline" style="padding:5px 12px;font-size:0.8rem;">Деталі</a></td>
-        </tr>
-        {% endfor %}
-    </table>
-    </div>
-</div>
-{% endif %}
-
-<!-- ==================== ШВИДКІ ПОСИЛАННЯ ==================== -->
+<!-- QUICK LINKS -->
 <div class="card">
     <h2 style="margin-bottom:14px;">Шукати самостійно</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -153,8 +118,92 @@
         <a href="https://setam.net.ua/auctions" target="_blank" rel="noopener" class="btn btn-primary">SETAM — всі лоти</a>
         <a href="https://www.fg.gov.ua/aktivi-bankiv/prodazh-aktiviv" target="_blank" rel="noopener" class="btn btn-success">ФГВ — продаж активів</a>
         <a href="http://torgi.fg.gov.ua/" target="_blank" rel="noopener" class="btn btn-success">ФГВ Торги</a>
-        <a href="https://ubiz.ua/auctions-all/finance" target="_blank" rel="noopener" class="btn btn-warning">UBIZ — банкрутство</a>
-        <a href="https://sale.uub.com.ua/filter/bankrupts-property" target="_blank" rel="noopener" class="btn btn-warning">UUB — банкрутство</a>
+        <a href="https://ubiz.ua/auctions-all/finance" target="_blank" rel="noopener" class="btn btn-warning">UBIZ — фінанси</a>
+        <a href="https://sale.uub.com.ua/PositionList.aspx" target="_blank" rel="noopener" class="btn btn-warning">UUB — лоти</a>
     </div>
 </div>
+
+<script>
+// Filter
+function filterTable() {
+    var search = document.getElementById('searchInput').value.toLowerCase();
+    var cat = document.getElementById('filterCategory').value;
+    var src = document.getElementById('filterSource').value;
+    var onlyMarked = document.getElementById('showOnlyMarked').checked;
+    var rows = document.querySelectorAll('#lotsTable tbody tr');
+    var visible = 0;
+    rows.forEach(function(row) {
+        var show = true;
+        if (search && row.dataset.text.indexOf(search) === -1) show = false;
+        if (cat && row.dataset.category !== cat) show = false;
+        if (src && row.dataset.source !== src) show = false;
+        if (onlyMarked && !row.querySelector('.lot-check').checked) show = false;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('countDisplay').textContent = 'Показано: ' + visible + ' з ' + rows.length;
+}
+
+// Sort
+function sortTable() {
+    var by = document.getElementById('sortBy').value;
+    var tbody = document.querySelector('#lotsTable tbody');
+    var rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+        if (by === 'date-desc') return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+        if (by === 'date-asc') return (a.dataset.date || '').localeCompare(b.dataset.date || '');
+        if (by === 'debt-desc') return parseFloat(b.dataset.debt || 0) - parseFloat(a.dataset.debt || 0);
+        if (by === 'debt-asc') return parseFloat(a.dataset.debt || 0) - parseFloat(b.dataset.debt || 0);
+        if (by === 'source') return (a.dataset.source || '').localeCompare(b.dataset.source || '');
+        return 0;
+    });
+    rows.forEach(function(row) { tbody.appendChild(row); });
+}
+
+// Toggle all checkboxes
+function toggleAll() {
+    var checks = document.querySelectorAll('.lot-check');
+    var allChecked = Array.from(checks).every(function(c) { return c.checked; });
+    checks.forEach(function(c) { c.checked = !allChecked; });
+}
+
+// Copy single
+function copyOne(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showToast('Скопійовано!');
+    });
+}
+
+// Copy selected
+function copySelected() {
+    var checks = document.querySelectorAll('.lot-check:checked');
+    if (checks.length === 0) { showToast('Нічого не відмічено'); return; }
+    var lines = [];
+    checks.forEach(function(c) {
+        lines.push(c.dataset.title + '\n' + c.dataset.url);
+    });
+    navigator.clipboard.writeText(lines.join('\n\n')).then(function() {
+        showToast('Скопійовано ' + checks.length + ' лотів!');
+    });
+}
+
+// Toast notification
+function showToast(msg) {
+    var t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:10px 20px;border-radius:8px;font-size:0.9rem;z-index:9999;animation:fadeOut 2s forwards;';
+    document.body.appendChild(t);
+    setTimeout(function() { t.remove(); }, 2000);
+}
+
+// Init
+filterTable();
+sortTable();
+</script>
+
+<style>
+@keyframes fadeOut { 0%{opacity:1;} 70%{opacity:1;} 100%{opacity:0;} }
+#lotsTable tr:hover { background: rgba(99,102,241,0.08); }
+.lot-check:checked + td { background: rgba(34,197,94,0.1); }
+</style>
 {% endblock %}
