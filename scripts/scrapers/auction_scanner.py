@@ -261,11 +261,33 @@ class AuctionScraper(BaseScraper):
 
 
 def get_known_lots() -> List[Dict[str, Any]]:
-    """Return list of known/verified NPL lots from lots_data.py + KNOWN_LOTS."""
+    """Return list of known/verified NPL lots from lots_data.py + KNOWN_LOTS.
+
+    Automatically moves lots with past auction_date to 'history'.
+    """
+    import datetime
+    today = datetime.date.today()
+
     combined = list(_VERIFIED_LOTS)
-    # Add any from KNOWN_LOTS that aren't in lots_data
     existing_urls = {l["url"] for l in combined}
     for lot in KNOWN_LOTS:
         if lot["url"] not in existing_urls:
             combined.append(lot)
+
+    # Auto-reclassify: past dates → history
+    for lot in combined:
+        if lot.get("category") not in ("active", "watching"):
+            continue
+        date_str = lot.get("auction_date", "")
+        if not date_str:
+            continue
+        try:
+            lot_date = datetime.date.fromisoformat(date_str)
+            if lot_date < today:
+                lot["category"] = "history"
+                if "status" not in lot or "продано" not in lot.get("status", "").lower():
+                    lot["status"] = f"минув {date_str}"
+        except (ValueError, TypeError):
+            pass
+
     return combined
