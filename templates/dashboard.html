@@ -17,7 +17,16 @@
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
             {% if lot.total_debt %}<span style="font-weight:700;font-size:0.88rem;">{{ fmt_uah(lot.total_debt) }}</span>{% elif lot.start_price %}<span style="font-weight:700;font-size:0.88rem;">{{ fmt_uah(lot.start_price) }}</span>{% endif %}
             {% if lot.auction_date %}<span class="tag tag-{{ color }}" style="font-size:0.7rem;">{{ lot.auction_date }}</span>{% endif %}
-            <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;" onclick="event.stopPropagation();">&#8599;</a>
+            <button class="fav-btn" data-url="{{ lot.url }}" onclick="event.stopPropagation();toggleFav('{{ lot.url }}',this);" title="В обране">&#9734;</button>
+            <div class="share-menu" onclick="event.stopPropagation();">
+                <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;">&#8599;</a>
+                <div class="share-dropdown">
+                    <button onclick="copyText('{{ lot.title }} {{ lot.url }}')">&#128203; Копіювати</button>
+                    <a href="https://t.me/share/url?url={{ lot.url|urlencode }}" target="_blank">&#9992; Telegram</a>
+                    <a href="viber://forward?text={{ (lot.title ~ ' ' ~ lot.url)|urlencode }}" target="_blank">&#128172; Viber</a>
+                    <a href="https://wa.me/?text={{ (lot.title ~ ' ' ~ lot.url)|urlencode }}" target="_blank">&#128172; WhatsApp</a>
+                </div>
+            </div>
         </div>
     </summary>
     <div style="padding:0 14px 12px;border-top:1px solid var(--border);">
