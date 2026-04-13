@@ -18,6 +18,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from scripts.scrapers.base import BaseScraper, extract_links
+from scripts.scrapers.lots_data import LOTS as _VERIFIED_LOTS
 
 LOGGER = logging.getLogger(__name__)
 
@@ -259,6 +260,12 @@ class AuctionScraper(BaseScraper):
         return {"scraped": results, "known": KNOWN_LOTS, "errors": errors}
 
 
-def get_known_lots() -> List[Dict[str, str]]:
-    """Return list of known/verified NPL lots without scraping."""
-    return KNOWN_LOTS.copy()
+def get_known_lots() -> List[Dict[str, Any]]:
+    """Return list of known/verified NPL lots from lots_data.py + KNOWN_LOTS."""
+    combined = list(_VERIFIED_LOTS)
+    # Add any from KNOWN_LOTS that aren't in lots_data
+    existing_urls = {l["url"] for l in combined}
+    for lot in KNOWN_LOTS:
+        if lot["url"] not in existing_urls:
+            combined.append(lot)
+    return combined
