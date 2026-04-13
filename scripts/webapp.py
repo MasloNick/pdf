@@ -283,8 +283,8 @@ def auctions_scan():
 
     return render_template("scan_results.html",
                            lots=all_lots,
-                           scraped=scan_data["scraped"],
-                           errors=scan_data["errors"])
+                           scraped={},
+                           errors=errors)
 
 
 # ============================================================================
