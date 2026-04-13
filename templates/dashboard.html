@@ -21,10 +21,10 @@
             <div class="share-menu" onclick="event.stopPropagation();">
                 <a href="{{ lot.url }}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;">&#8599;</a>
                 <div class="share-dropdown">
-                    <button onclick="copyText('{{ lot.title }} {{ lot.url }}')">&#128203; Копіювати</button>
-                    <a href="https://t.me/share/url?url={{ lot.url|urlencode }}" target="_blank">&#9992; Telegram</a>
-                    <a href="viber://forward?text={{ (lot.title ~ ' ' ~ lot.url)|urlencode }}" target="_blank">&#128172; Viber</a>
-                    <a href="https://wa.me/?text={{ (lot.title ~ ' ' ~ lot.url)|urlencode }}" target="_blank">&#128172; WhatsApp</a>
+                    <button onclick="copyText('{{ lot.title }} {{ lot.url }}')">&#128203; Копіювати посилання</button>
+                    <a href="https://t.me/share/url?url={{ lot.url|urlencode }}" target="_blank">&#9992; Надіслати в Telegram</a>
+                    <a href="viber://forward?text={{ (lot.title ~ ' ' ~ lot.url)|urlencode }}" target="_blank">&#128172; Надіслати в Viber</a>
+                    <a href="https://wa.me/?text={{ (lot.title ~ ' ' ~ lot.url)|urlencode }}" target="_blank">&#128172; Надіслати в WhatsApp</a>
                 </div>
             </div>
         </div>
@@ -64,36 +64,37 @@
 <!-- HEADER -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <div>
-        <h2 style="margin:0;font-size:1.3rem;">NPL Hunter</h2>
+        <h2 style="margin:0;font-size:1.3rem;">Мисливець NPL</h2>
         <p style="color:var(--text2);font-size:0.8rem;margin-top:2px;">93 джерела | {{ active_lots|length }} актуальних | {{ watching_lots|length }} спостереження | {{ history_lots|length }} історія</p>
     </div>
     <div style="display:flex;gap:6px;">
         <a href="/auctions/scan" class="btn btn-primary">&#8635; Оновити</a>
-        <a href="/auctions/scan?mode=browser" class="btn btn-outline">&#9881; Глибоке</a>
-        <a href="/auctions/export" class="btn btn-success">&#128196; Excel</a>
+        <a href="/auctions/scan?mode=browser" class="btn btn-outline">&#9881; Глибоке сканування</a>
+        <a href="/auctions/export" class="btn btn-success">&#128196; Завантажити Excel</a>
     </div>
 </div>
 
 <div id="scanIndicator" style="display:none;background:linear-gradient(90deg,var(--accent),var(--blue));padding:10px 16px;border-radius:8px;margin-bottom:12px;animation:pulse 1.5s infinite;">
-    <span style="color:#fff;font-weight:600;">&#8987; Сканування 93 джерел...</span>
+    <span style="color:#fff;font-weight:600;">&#8987; Йде сканування 93 джерел... Зачекайте</span>
 </div>
 
 <!-- ЗАПЛАНОВАНІ АУКЦІОНИ (з датою) -->
-{{ section("Заплановані аукціони", scheduled_lots, "green", "SCHEDULED") }}
+{{ section("Заплановані аукціони", scheduled_lots, "green", "ЗАПЛАНОВАНІ") }}
 
 <!-- ПОРТФЕЛІ (>1 договір) -->
-{{ section("Портфелі / пули активів", portfolio_lots, "blue", "PORTFOLIO") }}
+{{ section("Портфелі / пули активів", portfolio_lots, "blue", "ПОРТФЕЛІ") }}
 
 <!-- ЮРИДИЧНІ ОСОБИ -->
-{{ section("Права вимоги — юридичні особи", legal_lots, "orange", "LEGAL") }}
+{{ section("Права вимоги — юридичні особи", legal_lots, "orange", "ЮР.ОСОБИ") }}
 
 <!-- ФІЗИЧНІ ОСОБИ -->
-{{ section("Права вимоги — фізичні особи", physical_lots, "green", "PHYSICAL") }}
+{{ section("Права вимоги — фізичні особи", physical_lots, "green", "ФІЗ.ОСОБИ") }}
 
 <!-- ОКРЕМІ ЛОТИ (1 договір) -->
 {% if single_lots %}
 <details style="margin-bottom:12px;">
     <summary style="cursor:pointer;padding:8px 0;color:var(--text2);font-size:0.88rem;">&#9660; Окремі лоти — 1 договір ({{ single_lots|length }})</summary>
+
     <div style="margin-top:6px;">
     {% for lot in single_lots %}{{ lot_card(lot, "gray") }}{% endfor %}
     </div>
@@ -101,7 +102,7 @@
 {% endif %}
 
 <!-- НА СПОСТЕРЕЖЕННІ -->
-{{ section("На спостереженні — очікується перевиставлення", watching_lots, "orange", "WATCH") }}
+{{ section("На спостереженні — очікується перевиставлення", watching_lots, "orange", "СЛІДКУЄМО") }}
 
 <!-- ІНСТРУМЕНТИ -->
 <div class="two-col" style="margin-top:4px;">
@@ -128,6 +129,7 @@
 {% if history_lots %}
 <details style="margin-top:8px;">
     <summary style="cursor:pointer;color:var(--text2);font-size:0.85rem;padding:6px 0;">&#9660; Історія продажів ({{ history_lots|length }})</summary>
+
     <div style="margin-top:6px;">
     {% for lot in history_lots %}{{ lot_card(lot, "gray") }}{% endfor %}
     </div>

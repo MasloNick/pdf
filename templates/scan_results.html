@@ -6,9 +6,9 @@
         <p style="color:var(--text2);font-size:0.85rem;margin-top:4px;">Права вимоги, кредитні портфелі, дебіторська заборгованість</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a href="/auctions/scan" class="btn btn-outline">&#8635; Швидке</a>
-        <a href="/auctions/scan?mode=browser" class="btn btn-primary">&#9881; Глибоке</a>
-        <a href="/auctions/export" class="btn btn-success">&#128196; Excel</a>
+        <a href="/auctions/scan" class="btn btn-outline">&#8635; Швидке сканування</a>
+        <a href="/auctions/scan?mode=browser" class="btn btn-primary">&#9881; Глибоке сканування</a>
+        <a href="/auctions/export" class="btn btn-success">&#128196; Завантажити Excel</a>
         <button class="btn btn-warning" onclick="copySelected()">&#128203; Копіювати відмічені</button>
     </div>
 </div>
@@ -22,28 +22,28 @@
 <!-- TOOLBAR: filter + sort + search -->
 <div class="card" style="padding:12px 16px;">
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <input type="text" id="searchInput" placeholder="Пошук по назві, продавцю..." oninput="filterTable()" style="flex:1;min-width:200px;margin:0;max-width:none;">
+        <input type="text" id="searchInput" placeholder="Пошук за назвою, продавцем..." oninput="filterTable()" style="flex:1;min-width:200px;margin:0;max-width:none;">
         <select id="filterCategory" onchange="filterTable()" style="width:auto;min-width:150px;margin:0;">
-            <option value="">Всі категорії</option>
-            <option value="active">Активні</option>
+            <option value="">Усі категорії</option>
+            <option value="active">Актуальні</option>
             <option value="watching">На спостереженні</option>
-            <option value="history">Історія</option>
+            <option value="history">Історичні</option>
         </select>
         <select id="filterSource" onchange="filterTable()" style="width:auto;min-width:150px;margin:0;">
-            <option value="">Всі джерела</option>
+            <option value="">Усі джерела</option>
             {% set sources = [] %}
             {% for lot in lots %}{% if lot.source not in sources %}{% if sources.append(lot.source) %}{% endif %}{% endif %}{% endfor %}
             {% for s in sources %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
         </select>
         <select id="sortBy" onchange="sortTable()" style="width:auto;min-width:130px;margin:0;">
-            <option value="date-desc">Дата ↓</option>
-            <option value="date-asc">Дата ↑</option>
-            <option value="debt-desc">Борг ↓</option>
-            <option value="debt-asc">Борг ↑</option>
-            <option value="source">Джерело</option>
+            <option value="date-desc">За датою (нові)</option>
+            <option value="date-asc">За датою (старі)</option>
+            <option value="debt-desc">За сумою (більші)</option>
+            <option value="debt-asc">За сумою (менші)</option>
+            <option value="source">За джерелом</option>
         </select>
         <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;color:var(--text2);margin:0;white-space:nowrap;">
-            <input type="checkbox" id="showOnlyMarked" onchange="filterTable()"> Тільки відмічені
+            <input type="checkbox" id="showOnlyMarked" onchange="filterTable()"> Лише відмічені
         </label>
     </div>
 </div>
@@ -52,7 +52,7 @@
 <div class="card">
     <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
         <span id="countDisplay" style="color:var(--text2);font-size:0.85rem;"></span>
-        <button onclick="toggleAll()" class="btn btn-outline" style="padding:4px 10px;font-size:0.78rem;">Відмітити все</button>
+        <button onclick="toggleAll()" class="btn btn-outline" style="padding:4px 10px;font-size:0.78rem;">Обрати все</button>
     </div>
     <div style="overflow-x:auto;">
     <table id="lotsTable">
@@ -141,7 +141,7 @@ function filterTable() {
         row.style.display = show ? '' : 'none';
         if (show) visible++;
     });
-    document.getElementById('countDisplay').textContent = 'Показано: ' + visible + ' з ' + rows.length;
+    document.getElementById('countDisplay').textContent = 'Показано: ' + visible + ' із ' + rows.length;
 }
 
 // Sort
@@ -177,13 +177,13 @@ function copyOne(text) {
 // Copy selected
 function copySelected() {
     var checks = document.querySelectorAll('.lot-check:checked');
-    if (checks.length === 0) { showToast('Нічого не відмічено'); return; }
+    if (checks.length === 0) { alert('Спочатку відмітьте лоти галочками'); return; }
     var lines = [];
     checks.forEach(function(c) {
         lines.push(c.dataset.title + '\n' + c.dataset.url);
     });
     navigator.clipboard.writeText(lines.join('\n\n')).then(function() {
-        showToast('Скопійовано ' + checks.length + ' лотів!');
+        showToast('Скопійовано ' + checks.length + ' лотів у буфер!');
     });
 }
 
