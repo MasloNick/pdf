@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="margin-bottom:20px;">Деталі лота</h2>
+
+<div class="card" style="border-left:3px solid var(--green);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;">
+        <h2 style="margin:0;">Дані зі сторінки торгів</h2>
+        <a href="{{ lot_url }}" target="_blank" rel="noopener" class="btn btn-primary" style="font-size:0.85rem;">Відкрити оригінал &#8599;</a>
+    </div>
+
+    <table style="margin-top:16px;">
+        {% if lot.status %}<tr><th>Стан аукціону</th><td><strong>{{ lot.status }}</strong></td></tr>{% endif %}
+        {% if lot.lot_number %}<tr><th>Номер лоту</th><td>{{ lot.lot_number }}</td></tr>{% endif %}
+        {% if lot.auction_date %}<tr><th>Дата проведення</th><td><strong style="color:var(--accent);">{{ lot.auction_date }}</strong></td></tr>{% endif %}
+        {% if lot.end_date %}<tr><th>Дата закінчення</th><td>{{ lot.end_date }}</td></tr>{% endif %}
+        {% if lot.start_price %}<tr><th>Стартова ціна</th><td><strong style="color:var(--green);">{{ lot.start_price }} грн</strong></td></tr>{% endif %}
+        {% if lot.guarantee %}<tr><th>Гарантійний внесок</th><td><strong style="color:var(--orange);">{{ lot.guarantee }} грн</strong></td></tr>{% endif %}
+        {% if lot.step %}<tr><th>Крок аукціону</th><td>{{ lot.step }} грн</td></tr>{% endif %}
+        <tr><th>URL</th><td><a href="{{ lot_url }}" target="_blank" rel="noopener">{{ lot_url }}</a></td></tr>
+    </table>
+</div>
+
+{% if lot.raw_text %}
+<div class="card">
+    <h2>Текст сторінки (перші 3000 символів)</h2>
+    <pre style="white-space:pre-wrap;word-wrap:break-word;font-size:0.82rem;color:var(--text2);max-height:500px;overflow-y:auto;background:var(--bg3);padding:12px;border-radius:8px;">{{ lot.raw_text }}</pre>
+</div>
+{% endif %}
+
+<div style="display:flex;gap:8px;margin-top:12px;">
+    <a href="/portfolio" class="btn btn-outline">&larr; Назад</a>
+    <a href="/pricing{% if lot.start_price %}?total_debt={{ lot.start_price|replace(' ', '')|replace(',', '') }}{% endif %}" class="btn btn-warning">Калькулятор ціни</a>
+</div>
+{% endblock %}

@@ -9,42 +9,47 @@
             Система автоматично розпізнає колонки, порахує аналітику, скоринг A-F, рекомендовану ціну та рівень ризику.
         </p>
         <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="mode" value="csv">
             <div style="background:var(--bg3);border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;margin-bottom:16px;">
                 <div style="font-size:2rem;margin-bottom:8px;">&#128196;</div>
-                <input type="file" name="file" accept=".csv" required style="max-width:100%;background:transparent;border:none;">
+                <input type="file" name="file" accept=".csv" style="max-width:100%;background:transparent;border:none;">
             </div>
             <label>Запитувана ціна (грн, якщо відома):</label>
             <input type="number" name="asking_price" step="0.01" placeholder="напр. 500000">
             <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:0.95rem;margin-top:8px;">
-                Аналізувати портфель
+                Аналізувати портфель (CSV)
             </button>
         </form>
     </div>
 
-    <div class="card">
-        <h2>Підтримувані колонки</h2>
-        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px;">Назви українською або англійською — система розпізнає автоматично:</p>
-        <table>
-            <tr><th>Поле</th><th>Можливі назви</th></tr>
-            <tr><td>Тип боржника</td><td><code>тип</code> <code>debtor_type</code> <code>тип боржника</code></td></tr>
-            <tr><td>Назва / ПІБ</td><td><code>назва</code> <code>name</code> <code>піб</code> <code>боржник</code></td></tr>
-            <tr><td>ЄДРПОУ</td><td><code>єдрпоу</code> <code>edrpou</code> <code>код</code></td></tr>
-            <tr><td>Загальний борг</td><td><code>борг</code> <code>total</code> <code>сума боргу</code></td></tr>
-            <tr><td>Тіло кредиту</td><td><code>тіло</code> <code>principal</code> <code>основний борг</code></td></tr>
-            <tr><td>Відсотки</td><td><code>відсотки</code> <code>interest</code> <code>проценти</code></td></tr>
-            <tr><td>Пеня</td><td><code>пеня</code> <code>penalty</code> <code>штраф</code></td></tr>
-            <tr><td>Регіон</td><td><code>регіон</code> <code>region</code> <code>область</code></td></tr>
-        </table>
+    <div class="card" style="border-left:3px solid var(--green);">
+        <h2>Аналіз за посиланням на торги</h2>
+        <p style="color:var(--text2);font-size:0.88rem;margin-bottom:16px;">
+            Вставте посилання на лот (ProZorro, SETAM, UBIZ) — система сама зайде, витягне дані та проаналізує.
+        </p>
+        <form method="post">
+            <input type="hidden" name="mode" value="url">
+            <label>Посилання на торги:</label>
+            <input type="text" name="lot_url" placeholder="https://prozorro.sale/auction/..." style="max-width:100%;">
+            <label>Запитувана ціна (грн, якщо відома):</label>
+            <input type="number" name="asking_price" step="0.01" placeholder="напр. 500000">
+            <button type="submit" class="btn btn-success" style="width:100%;padding:12px;font-size:0.95rem;margin-top:8px;">
+                Аналізувати за посиланням
+            </button>
+        </form>
 
-        <h2 style="margin-top:16px;">Що отримаєте</h2>
-        <div style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem;">
-            <div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-green">&#10004;</span> Повна статистика (тіло, відсотки, пеня, середня, медіана)</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-blue">&#10004;</span> Скоринг A-F кожного боржника</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-orange">&#10004;</span> Рекомендація BUY / CONSIDER / PASS</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-green">&#10004;</span> Рекомендована ціна (мін/сер/макс)</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-blue">&#10004;</span> Оцінка recovery rate</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-orange">&#10004;</span> Експорт JSON/CSV/PDF</div>
-        </div>
+        <h2 style="margin-top:20px;">Підтримувані колонки CSV</h2>
+        <table style="font-size:0.82rem;">
+            <tr><th>Поле</th><th>Можливі назви</th></tr>
+            <tr><td>Тип боржника</td><td><code>тип</code> <code>debtor_type</code></td></tr>
+            <tr><td>Назва / ПІБ</td><td><code>назва</code> <code>name</code> <code>піб</code></td></tr>
+            <tr><td>ЄДРПОУ</td><td><code>єдрпоу</code> <code>edrpou</code></td></tr>
+            <tr><td>Загальний борг</td><td><code>борг</code> <code>total</code> <code>сума боргу</code></td></tr>
+            <tr><td>Тіло</td><td><code>тіло</code> <code>principal</code></td></tr>
+            <tr><td>Відсотки</td><td><code>відсотки</code> <code>interest</code></td></tr>
+            <tr><td>Пеня</td><td><code>пеня</code> <code>penalty</code></td></tr>
+            <tr><td>Регіон</td><td><code>регіон</code> <code>region</code></td></tr>
+        </table>
     </div>
 </div>
 {% endblock %}

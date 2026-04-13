@@ -182,15 +182,38 @@ def dashboard():
 @app.route("/portfolio", methods=["GET", "POST"])
 def portfolio_analysis():
     if request.method == "POST":
-        file = request.files.get("file")
-        if not file or not file.filename:
-            flash("Будь ласка, оберіть CSV-файл з даними портфеля.")
-            return redirect(url_for("portfolio_analysis"))
-        try:
-            csv_text = file.stream.read().decode("utf-8")
-        except UnicodeDecodeError:
-            flash("Не вдалося прочитати файл. Переконайтесь, що він у кодуванні UTF-8.")
-            return redirect(url_for("portfolio_analysis"))
+        mode = request.form.get("mode", "csv")
+        asking = float(request.form.get("asking_price", 0) or 0)
+        csv_text = None
+        lot_url = None
+
+        if mode == "url":
+            # Analyse by URL — fetch lot page with browser
+            lot_url = request.form.get("lot_url", "").strip()
+            if not lot_url:
+                flash("Вставте посилання на торги.")
+                return redirect(url_for("portfolio_analysis"))
+            try:
+                from scripts.scrapers.browser_scraper import scan_lot_details
+                lot_info = scan_lot_details(lot_url)
+                if lot_info.get("error"):
+                    flash(f"Помилка завантаження: {lot_info['error']}. Спробуйте pip install playwright && python -m playwright install chromium")
+                    return redirect(url_for("portfolio_analysis"))
+                return render_template("lot_details.html", lot=lot_info, lot_url=lot_url)
+            except Exception as exc:
+                flash(f"Помилка: {exc}")
+                return redirect(url_for("portfolio_analysis"))
+        else:
+            # Standard CSV analysis
+            file = request.files.get("file")
+            if not file or not file.filename:
+                flash("Будь ласка, оберіть CSV-файл з даними портфеля.")
+                return redirect(url_for("portfolio_analysis"))
+            try:
+                csv_text = file.stream.read().decode("utf-8")
+            except UnicodeDecodeError:
+                flash("Не вдалося прочитати файл. Переконайтесь, що він у кодуванні UTF-8.")
+                return redirect(url_for("portfolio_analysis"))
 
         records, warnings = import_portfolio_csv(csv_text)
         for w in warnings:
@@ -372,6 +395,112 @@ def monitoring():
         dgf_banks=DGF_LIQUIDATED_BANKS,
         search_keywords=SEARCH_KEYWORDS,
     )
+
+
+# ============================================================================
+# Export active lots to Excel
+# ============================================================================
+
+@app.route("/auctions/export")
+def export_lots_excel():
+    """Export active lots to Excel (.xlsx) with clickable links."""
+    from scripts.scrapers.auction_scanner import get_known_lots
+    import openpyxl
+    from openpyxl.utils import get_column_letter
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    lots = get_known_lots()
+
+    wb = openpyxl.Workbook()
+
+    # --- Sheet 1: Active ---
+    ws = wb.active
+    ws.title = "Активні"
+    _write_lots_sheet(ws, [l for l in lots if l.get("category") == "active"],
+                      "Активні лоти NPL")
+
+    # --- Sheet 2: Watching ---
+    ws2 = wb.create_sheet("На спостереженні")
+    _write_lots_sheet(ws2, [l for l in lots if l.get("category") == "watching"],
+                      "На спостереженні")
+
+    # --- Sheet 3: History ---
+    ws3 = wb.create_sheet("Історія")
+    _write_lots_sheet(ws3, [l for l in lots if l.get("category") == "history"],
+                      "Завершені продажі")
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    return send_file(
+        buf,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="npl_lots_active.xlsx",
+    )
+
+
+def _write_lots_sheet(ws, lots, title):
+    """Fill worksheet with lot data."""
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    # Header style
+    header_fill = PatternFill(start_color="2c3e50", end_color="2c3e50", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=10)
+
+    # Title row
+    ws.append([title])
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
+    ws["A1"].font = Font(bold=True, size=13)
+    ws.append([])
+
+    # Headers
+    headers = ["Джерело", "Продавець", "Що продається", "Договорів", "Загальний борг",
+               "Стартова ціна", "Гарантійний", "Тип аукціону", "Дата", "Посилання"]
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=3, column=col)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
+
+    # Data rows
+    for lot in lots:
+        total_debt = lot.get("total_debt")
+        start_price = lot.get("start_price")
+        sold_price = lot.get("sold_price")
+
+        row = [
+            lot.get("source", ""),
+            lot.get("seller", ""),
+            lot.get("what", lot.get("title", "")),
+            lot.get("num_contracts", ""),
+            total_debt if total_debt else "",
+            start_price if start_price else "",
+            lot.get("guarantee", ""),
+            lot.get("auction_type", ""),
+            lot.get("auction_date", ""),
+            lot.get("url", ""),
+        ]
+        ws.append(row)
+
+        # Make URL clickable
+        row_num = ws.max_row
+        url = lot.get("url", "")
+        if url:
+            cell = ws.cell(row=row_num, column=10)
+            cell.hyperlink = url
+            cell.font = Font(color="0563C1", underline="single")
+
+        # Sold price for history
+        if sold_price:
+            ws.cell(row=row_num, column=6).value = f"{start_price} -> {sold_price}"
+
+    # Column widths
+    widths = [20, 25, 45, 10, 18, 18, 18, 25, 12, 50]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[chr(64 + i) if i <= 9 else "J"].width = w
 
 
 # ============================================================================
