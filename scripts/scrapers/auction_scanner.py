@@ -58,24 +58,26 @@ SOURCES = {
     },
 }
 
-# Known active lots (verified via WebSearch April 2026)
-# category: "active" | "watching" | "failed" | "history"
+# Known lots (verified via WebSearch April 2026)
+# category: "active" | "watching" | "history"
+# ВАЖЛИВО: статус "active" = ПЕРЕВІРЕНО що лот ще діє
+#           статус "check" = потрібно перевірити на сайті
 KNOWN_LOTS: List[Dict[str, Any]] = [
 
-    # ===================== АКТУАЛЬНІ / АКТИВНІ =====================
+    # ===================== АКТУАЛЬНІ / ПІДТВЕРДЖЕНІ =====================
 
     {
         "category": "active",
-        "source": "ProZorro",
+        "source": "ProZorro/Комерційний",
         "seller": "—",
-        "what": "Права вимоги (комерційний продаж)",
-        "title": "Аукціон з продажу права вимоги",
+        "what": "Пул активів: права вимоги за кредитними та телеком-договорами з фіз. та юр. особами — 14 366 договорів",
+        "title": "Пул 14 366 договорів (кредити + телеком) м.Київ",
         "url": "https://prozorro.sale/auction/CSE001-UA-20260317-02812/",
-        "num_contracts": None,
+        "num_contracts": 14366,
         "total_debt": None,
         "avg_debt": None,
         "start_price": None,
-        "auction_type": "Голландський аукціон",
+        "auction_type": "Комерційний продаж (зниження ціни)",
         "guarantee": "",
         "auction_date": "2026-03-17",
         "auction_time": "",
@@ -83,10 +85,10 @@ KNOWN_LOTS: List[Dict[str, Any]] = [
     },
     {
         "category": "active",
-        "source": "SETAM",
+        "source": "SETAM/ПриватБанк",
         "seller": "АТ КБ «ПриватБанк»",
         "what": "Права вимоги за беззаставними кредитними договорами з фізичними особами",
-        "title": "Редукціон. Права вимоги ПриватБанк — фізичні особи",
+        "title": "Редукціон ПриватБанк — права вимоги фіз.осіб",
         "url": "https://setam.net.ua/auction/576099",
         "num_contracts": None,
         "total_debt": 5203956695.69,
@@ -96,14 +98,14 @@ KNOWN_LOTS: List[Dict[str, Any]] = [
         "guarantee": "Згідно з правилами SETAM",
         "auction_date": "",
         "auction_time": "",
-        "status": "діючий — прийом заявок",
+        "status": "ПЕРЕВІРИТИ на сайті",
     },
     {
         "category": "active",
-        "source": "SETAM",
+        "source": "SETAM/Укрексімбанк",
         "seller": "АТ «Укрексімбанк»",
         "what": "Права вимоги за кредитними договорами з юридичними особами",
-        "title": "Редукціон. Права вимоги Укрексімбанк — юридичні особи",
+        "title": "Редукціон Укрексімбанк — права вимоги юр.осіб",
         "url": "https://setam.net.ua/auction/564348",
         "num_contracts": None,
         "total_debt": 4984663467.30,
@@ -113,24 +115,7 @@ KNOWN_LOTS: List[Dict[str, Any]] = [
         "guarantee": "Згідно з правилами SETAM",
         "auction_date": "",
         "auction_time": "",
-        "status": "діючий — прийом заявок",
-    },
-    {
-        "category": "active",
-        "source": "SETAM",
-        "seller": "АТ КБ «ПриватБанк»",
-        "what": "Права вимоги за беззаставними споживчими кредитами фіз.осіб",
-        "title": "Портфель ПриватБанк — 80 545 договорів фіз.осіб",
-        "url": "https://setam.net.ua/auction/541272",
-        "num_contracts": 80545,
-        "total_debt": 501395467.60,
-        "avg_debt": 6225.0,
-        "start_price": 10529304.82,
-        "auction_type": "Редукціон (крок зниження 1%)",
-        "guarantee": "Згідно з правилами SETAM",
-        "auction_date": "",
-        "auction_time": "",
-        "status": "діючий — редукціон",
+        "status": "ПЕРЕВІРИТИ на сайті",
     },
 
     # ===================== НА СПОСТЕРЕЖЕННІ (хантер) =====================
@@ -158,6 +143,25 @@ KNOWN_LOTS: List[Dict[str, Any]] = [
 
     # ===================== ІСТОРІЯ (для аналітики цін) =====================
 
+    {
+        "category": "history",
+        "source": "SETAM/ПриватБанк",
+        "seller": "АТ КБ «ПриватБанк»",
+        "what": "Права вимоги за портфелем карткових кредитів фіз.осіб — 80 545 договорів",
+        "title": "ПриватБанк — 80 545 карткових кредитів (ПРОДАНО)",
+        "url": "https://setam.net.ua/auction/541272",
+        "num_contracts": 80545,
+        "total_debt": 501395467.60,
+        "avg_debt": 6225.0,
+        "start_price": 501395467.60,
+        "sold_price": 13101000.00,
+        "sold_pct": 2.6,
+        "auction_type": "Редукціон",
+        "guarantee": "526 465.24 грн",
+        "auction_date": "2024-02-23",
+        "auction_time": "09:00",
+        "status": "завершено — продано 23.02.2024",
+    },
     {
         "category": "history",
         "source": "ProZorro",
