@@ -5,7 +5,10 @@
         <h2 style="margin:0;font-size:1.4rem;">Торги NPL-портфелів</h2>
         <p style="color:var(--text2);font-size:0.85rem;margin-top:4px;">Права вимоги, кредитні портфелі, дебіторська заборгованість</p>
     </div>
-    <a href="/auctions/scan" class="btn btn-primary">&#8635; Оновити</a>
+    <div style="display:flex;gap:8px;">
+        <a href="/auctions/scan" class="btn btn-outline">&#8635; Швидке</a>
+        <a href="/auctions/scan?mode=browser" class="btn btn-primary">&#9881; Глибоке сканування (браузер)</a>
+    </div>
 </div>
 
 {% if errors %}

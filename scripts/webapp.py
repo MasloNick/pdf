@@ -248,18 +248,33 @@ def auctions_scan():
     """Scan all sources for NPL auctions."""
     from scripts.scrapers.auction_scanner import AuctionScraper, get_known_lots
 
-    scraper = AuctionScraper(timeout=10, max_retries=1)
-    scan_data = scraper.scan_all()
+    mode = request.args.get("mode", "fast")
+    errors: List[str] = []
 
-    # Combine scraped + known
-    all_lots = list(scan_data["known"])  # verified lots always show
-    for source_key, items in scan_data["scraped"].items():
-        for item in items:
-            if not any(l["url"] == item["url"] for l in all_lots):
-                all_lots.append(item)
+    # Always start with verified lots
+    all_lots = get_known_lots()
 
-    scraped_count = sum(len(v) for v in scan_data["scraped"].values())
-    flash(f"Знайдено: {len(scan_data['known'])} перевірених лотів + {scraped_count} з веб-сканування.")
+    if mode == "browser":
+        # Deep scan with Playwright browser
+        from scripts.scrapers.browser_scraper import scan_with_browser
+        browser_data = scan_with_browser(timeout_ms=20000)
+        for lot in browser_data["lots"]:
+            if not any(l["url"] == lot["url"] for l in all_lots):
+                all_lots.append(lot)
+        errors.extend(browser_data["errors"])
+        flash(f"Глибоке сканування: {browser_data['sources_scanned']} джерел, "
+              f"знайдено {len(browser_data['lots'])} нових лотів.")
+    else:
+        # Fast scan with urllib (basic)
+        scraper = AuctionScraper(timeout=10, max_retries=1)
+        scan_data = scraper.scan_all()
+        for source_key, items in scan_data["scraped"].items():
+            for item in items:
+                if not any(l["url"] == item["url"] for l in all_lots):
+                    all_lots.append(item)
+        errors.extend(scan_data["errors"])
+        scraped_count = sum(len(v) for v in scan_data["scraped"].values())
+        flash(f"Знайдено: {len(all_lots)} лотів ({scraped_count} з веб-сканування).")
 
     return render_template("scan_results.html",
                            lots=all_lots,
