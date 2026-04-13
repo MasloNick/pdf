@@ -160,16 +160,19 @@ app.jinja_env.globals["fmt_uah"] = _fmt_uah
 
 @app.route("/")
 def dashboard():
-    with get_db() as conn:
-        auctions = get_all_auctions(conn, limit=50)
+    from scripts.scrapers.auction_scanner import get_known_lots
 
-    stats = {
-        "total_auctions": len(auctions),
-        "active": sum(1 for a in auctions if a.get("status") == "active"),
-        "total_debt": sum(a.get("total_debt") or 0 for a in auctions),
-        "banks_tracked": len(BANK_REGISTRY),
-    }
-    return render_template("dashboard.html", stats=stats, auctions=auctions[:20])
+    lots = get_known_lots()
+    active_lots = [l for l in lots if l.get("category") == "active"]
+    watching_lots = [l for l in lots if l.get("category") == "watching"]
+    history_lots = [l for l in lots if l.get("category") == "history"]
+
+    return render_template(
+        "dashboard.html",
+        active_lots=active_lots,
+        watching_lots=watching_lots,
+        history_lots=history_lots,
+    )
 
 
 # ============================================================================
