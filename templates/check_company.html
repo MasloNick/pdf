@@ -1,11 +1,66 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Перевірка юридичної особи</h2>
+<style>
+    .check-header {
+        display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .check-header .header-icon {
+        width: 42px; height: 42px; border-radius: 10px; display: flex;
+        align-items: center; justify-content: center; font-size: 1.2rem;
+        background: rgba(99,102,241,0.12); color: var(--accent); flex-shrink: 0;
+    }
+    .check-header div h2 { margin: 0; }
+    .check-header div p { margin: 2px 0 0; font-size: 0.85rem; color: var(--text2); }
+    .search-form .form-row > div {
+        background: var(--bg3); border-radius: 8px; padding: 14px 16px;
+    }
+    .search-form .form-row > div input { max-width: 100%; margin-bottom: 0; }
+    .status-indicator {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 1rem; font-weight: 600;
+    }
+    .status-dot {
+        width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+        box-shadow: 0 0 6px currentColor;
+    }
+    .risk-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.88rem;
+    }
+    .risk-badge-high { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .risk-badge-medium { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(245,158,11,0.3); }
+    .risk-badge-low { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .warning-box {
+        background: var(--orange-bg); border: 1px solid rgba(245,158,11,0.3);
+        padding: 14px 18px; border-radius: 10px; margin-bottom: 16px;
+    }
+    .warning-box strong { color: var(--orange); font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+    .warning-box ul { margin: 8px 0 0 18px; padding: 0; }
+    .warning-box li { color: var(--text2); font-size: 0.85rem; margin-bottom: 4px; }
+    .result-table td:first-child {
+        color: var(--text2); font-weight: 500; width: 40%;
+    }
+    .sources-list {
+        display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .source-tag {
+        display: inline-block; padding: 3px 10px; border-radius: 6px;
+        font-size: 0.75rem; font-weight: 500;
+        background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(59,130,246,0.2);
+    }
+</style>
 
-<div class="card">
-    <p>Перевірка статусу компанії з відкритих джерел: ЄДР, реєстр судових рішень, виконавчі провадження, банкрутство.</p>
-    <form method="post">
-        <div class="form-row">
+<div class="check-header">
+    <div class="header-icon">&#10004;</div>
+    <div>
+        <h2>Перевірка юридичної особи</h2>
+        <p>ЄДР, реєстр судових рішень, виконавчі провадження, банкрутство</p>
+    </div>
+</div>
+
+<div class="card" style="border-left:3px solid var(--accent);">
+    <form method="post" class="search-form">
+        <div class="form-row" style="margin-bottom:16px;">
             <div>
                 <label>Код ЄДРПОУ</label>
                 <input type="text" name="edrpou" placeholder="напр. 12345678" required>
@@ -15,47 +70,53 @@
                 <input type="text" name="name" placeholder="ТОВ «Назва»">
             </div>
         </div>
-        <button type="submit" class="btn btn-primary">Перевірити</button>
+        <button type="submit" class="btn btn-primary" style="padding:10px 28px;">Перевірити</button>
     </form>
 </div>
 
 {% if result %}
-<div class="card" style="border-left: 3px solid {% if result.risk_level == 'high' %}#e74c3c{% elif result.risk_level == 'medium' %}#f39c12{% else %}#27ae60{% endif %};">
-    <h2>Результат перевірки: {{ result.name or result.edrpou }}</h2>
+<div class="card" style="border-left: 3px solid {% if result.risk_level == 'high' %}var(--red){% elif result.risk_level == 'medium' %}var(--orange){% else %}var(--green){% endif %};">
+    <h2 style="margin-bottom:16px;">Результат перевірки: {{ result.name or result.edrpou }}</h2>
 
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="number">{{ result.edrpou }}</div>
+        <div class="stat-card" style="border:1px solid var(--border);">
+            <div class="number" style="font-size:1.3rem;letter-spacing:1px;">{{ result.edrpou }}</div>
             <div class="label">ЄДРПОУ</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" style="border:1px solid var(--border);">
             <div class="number">
-                {% if result.status == 'active' %}<span style="color:#27ae60">Активна</span>
-                {% elif result.status == 'in_liquidation' %}<span style="color:#f39c12">Ліквідація</span>
-                {% elif result.status == 'bankrupt' %}<span style="color:#e74c3c">Банкрут</span>
-                {% elif result.status == 'terminated' %}<span style="color:#e74c3c">Припинена</span>
-                {% else %}<span style="color:#999">Невідомо</span>{% endif %}
+                {% if result.status == 'active' %}
+                    <span class="status-indicator" style="color:var(--green);"><span class="status-dot" style="color:var(--green);background:var(--green);"></span> Активна</span>
+                {% elif result.status == 'in_liquidation' %}
+                    <span class="status-indicator" style="color:var(--orange);"><span class="status-dot" style="color:var(--orange);background:var(--orange);"></span> Ліквідація</span>
+                {% elif result.status == 'bankrupt' %}
+                    <span class="status-indicator" style="color:var(--red);"><span class="status-dot" style="color:var(--red);background:var(--red);"></span> Банкрут</span>
+                {% elif result.status == 'terminated' %}
+                    <span class="status-indicator" style="color:var(--red);"><span class="status-dot" style="color:var(--red);background:var(--red);"></span> Припинена</span>
+                {% else %}
+                    <span class="status-indicator" style="color:var(--text2);"><span class="status-dot" style="color:var(--text2);background:var(--text2);"></span> Невідомо</span>
+                {% endif %}
             </div>
             <div class="label">Статус</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" style="border:1px solid var(--border);">
             <div class="number">
-                {% if result.risk_level == 'high' %}<span class="tag tag-red">Високий</span>
-                {% elif result.risk_level == 'medium' %}<span class="tag tag-orange">Середній</span>
-                {% else %}<span class="tag tag-green">Низький</span>{% endif %}
+                {% if result.risk_level == 'high' %}<span class="risk-badge risk-badge-high">&#9888; Високий</span>
+                {% elif result.risk_level == 'medium' %}<span class="risk-badge risk-badge-medium">&#9888; Середній</span>
+                {% else %}<span class="risk-badge risk-badge-low">&#10003; Низький</span>{% endif %}
             </div>
             <div class="label">Рівень ризику</div>
         </div>
-        <div class="stat-card">
-            <div class="number">{{ result.court_cases_count }}</div>
+        <div class="stat-card" style="border:1px solid var(--border);">
+            <div class="number" style="{% if result.court_cases_count > 0 %}color:var(--orange);{% endif %}">{{ result.court_cases_count }}</div>
             <div class="label">Судових справ</div>
         </div>
     </div>
 
     {% if result.warnings %}
-    <div style="background:#fff3cd;border:1px solid #ffc107;padding:0.8rem;border-radius:4px;margin-bottom:1rem;">
-        <strong>Попередження:</strong>
-        <ul style="margin:0.5rem 0 0;">
+    <div class="warning-box">
+        <strong>&#9888; Попередження:</strong>
+        <ul>
             {% for w in result.warnings %}
             <li>{{ w }}</li>
             {% endfor %}
@@ -63,15 +124,24 @@
     </div>
     {% endif %}
 
-    <table>
-        <tr><th>Показник</th><th>Значення</th></tr>
-        <tr><td>Назва</td><td>{{ result.name or '—' }}</td></tr>
+    <table class="result-table" style="border-radius:8px;overflow:hidden;">
+        <tr><th style="width:40%;">Показник</th><th>Значення</th></tr>
+        <tr><td>Назва</td><td><strong>{{ result.name or '—' }}</strong></td></tr>
         <tr><td>Адреса</td><td>{{ result.address or '—' }}</td></tr>
         {% if result.bankruptcy_info %}
-        <tr><td>Банкрутство</td><td style="color:#e74c3c"><strong>{{ result.bankruptcy_info }}</strong></td></tr>
+        <tr style="background:var(--red-bg);"><td style="color:var(--red);font-weight:600;">Банкрутство</td><td style="color:var(--red);"><strong>{{ result.bankruptcy_info }}</strong></td></tr>
         {% endif %}
-        <tr><td>Виконавчих проваджень</td><td>{{ result.enforcement_count }}</td></tr>
-        <tr><td>Перевірені джерела</td><td>{{ result.sources_checked|join(', ') }}</td></tr>
+        <tr><td>Виконавчих проваджень</td><td><strong style="{% if result.enforcement_count > 0 %}color:var(--orange);{% endif %}">{{ result.enforcement_count }}</strong></td></tr>
+        <tr>
+            <td>Перевірені джерела</td>
+            <td>
+                <div class="sources-list">
+                    {% for src in result.sources_checked %}
+                    <span class="source-tag">{{ src }}</span>
+                    {% endfor %}
+                </div>
+            </td>
+        </tr>
     </table>
 </div>
 {% endif %}
