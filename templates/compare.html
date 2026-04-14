@@ -1,49 +1,146 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Порівняння портфелів</h2>
+<style>
+    .compare-upload-section {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;
+    }
+    @media (max-width: 700px) { .compare-upload-section { grid-template-columns: 1fr; } }
+    .portfolio-box {
+        background: var(--bg3); border-radius: 10px; padding: 18px;
+        border: 1px solid var(--border); transition: border-color 0.15s;
+    }
+    .portfolio-box:hover { border-color: var(--accent); }
+    .portfolio-box .box-label {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+        font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .portfolio-box .box-dot {
+        width: 10px; height: 10px; border-radius: 50%;
+    }
+    .portfolio-box label { font-size: 0.82rem; }
+    .portfolio-box input[type="text"] { max-width: 100%; margin-bottom: 8px; }
+    .portfolio-box input[type="file"] { max-width: 100%; }
+    .winner-banner {
+        display: flex; align-items: center; gap: 16px;
+        padding: 18px 22px; border-radius: 10px;
+    }
+    .winner-banner .winner-icon {
+        width: 48px; height: 48px; border-radius: 12px; display: flex;
+        align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+    }
+    .winner-banner .winner-text h2 { margin: 0 0 4px; font-size: 1.1rem; }
+    .winner-banner .winner-text p { margin: 0; font-size: 0.88rem; color: var(--text2); }
+    .compare-table { border-radius: 10px; overflow: hidden; }
+    .compare-table th { text-align: center; }
+    .compare-table th:first-child { text-align: left; }
+    .compare-table td { text-align: center; vertical-align: middle; }
+    .compare-table td:first-child { text-align: left; }
+    .compare-table tr.row-winner-a td:nth-child(2) {
+        background: rgba(59,130,246,0.06);
+    }
+    .compare-table tr.row-winner-b td:nth-child(3) {
+        background: rgba(245,158,11,0.06);
+    }
+    .winner-cell-a {
+        font-weight: 600; color: var(--blue);
+    }
+    .winner-cell-b {
+        font-weight: 600; color: var(--orange);
+    }
+    .diff-cell { font-size: 0.82rem; color: var(--text2); }
+    .back-link {
+        display: inline-flex; align-items: center; gap: 6px;
+        margin-top: 16px; padding: 8px 16px; border-radius: 8px;
+        background: var(--surface); border: 1px solid var(--border);
+        color: var(--text2); text-decoration: none; font-size: 0.85rem;
+        transition: all 0.15s;
+    }
+    .back-link:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+
+<h2 style="margin-bottom:20px;">Порівняння портфелів</h2>
 
 {% if not result %}
-<div class="card">
-    <p>{% if csv_a_id %}Портфель A вже завантажено з попереднього аналізу. Додайте другий для порівняння:{% else %}Завантажте два CSV-файли для порівняння:{% endif %}</p>
+<div class="card" style="border-left:3px solid var(--accent);">
+    <p style="color:var(--text2);font-size:0.88rem;margin-bottom:16px;">
+        {% if csv_a_id %}Портфель A вже завантажено з попереднього аналізу. Додайте другий для порівняння:{% else %}Завантажте два CSV-файли для порівняння:{% endif %}
+    </p>
     <form method="post" enctype="multipart/form-data">
-        {% if csv_a_id %}
-        <input type="hidden" name="csv_a_id" value="{{ csv_a_id }}">
-        <p><span class="tag tag-green">Портфель A завантажено</span></p>
-        <label>Назва A: <input type="text" name="name_a" value="Поточний портфель" style="max-width:250px"></label><br><br>
-        {% else %}
-        <label>Портфель A: <input type="text" name="name_a" placeholder="Назва" style="max-width:250px"></label>
-        <input type="file" name="file_a" accept=".csv" required><br><br>
-        {% endif %}
-        <label>Портфель B: <input type="text" name="name_b" placeholder="Назва" style="max-width:250px"></label>
-        <input type="file" name="file_b" accept=".csv" required><br><br>
-        <button type="submit" class="btn btn-primary">Порівняти</button>
+        <div class="compare-upload-section">
+            {% if csv_a_id %}
+            <input type="hidden" name="csv_a_id" value="{{ csv_a_id }}">
+            <div class="portfolio-box" style="border-color:var(--green);">
+                <div class="box-label"><span class="box-dot" style="background:var(--blue);"></span> Портфель A</div>
+                <p><span class="tag tag-green">Портфель A завантажено</span></p>
+                <label>Назва A:</label>
+                <input type="text" name="name_a" value="Поточний портфель">
+            </div>
+            {% else %}
+            <div class="portfolio-box">
+                <div class="box-label"><span class="box-dot" style="background:var(--blue);"></span> Портфель A</div>
+                <label>Назва:</label>
+                <input type="text" name="name_a" placeholder="Назва">
+                <input type="file" name="file_a" accept=".csv" required>
+            </div>
+            {% endif %}
+            <div class="portfolio-box">
+                <div class="box-label"><span class="box-dot" style="background:var(--orange);"></span> Портфель B</div>
+                <label>Назва:</label>
+                <input type="text" name="name_b" placeholder="Назва">
+                <input type="file" name="file_b" accept=".csv" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:0.95rem;">Порівняти</button>
     </form>
 </div>
 {% else %}
-<div class="card" style="border-left:3px solid {% if result.overall_winner == 'A' %}#3498db{% elif result.overall_winner == 'B' %}#e67e22{% else %}#95a5a6{% endif %};">
-    <h2>Переможець: {{ result.portfolios[0].name if result.overall_winner == 'A' else result.portfolios[1].name if result.overall_winner == 'B' else 'Нічия' }}</h2>
-    <p>{{ result.recommendation }}</p>
+<div class="card" style="border-left:3px solid {% if result.overall_winner == 'A' %}var(--blue){% elif result.overall_winner == 'B' %}var(--orange){% else %}var(--text2){% endif %};">
+    <div class="winner-banner" style="background:{% if result.overall_winner == 'A' %}var(--blue-bg){% elif result.overall_winner == 'B' %}var(--orange-bg){% else %}rgba(139,143,167,0.08){% endif %};">
+        <div class="winner-icon" style="background:{% if result.overall_winner == 'A' %}rgba(59,130,246,0.2);color:var(--blue){% elif result.overall_winner == 'B' %}rgba(245,158,11,0.2);color:var(--orange){% else %}rgba(139,143,167,0.2);color:var(--text2){% endif %};">
+            {% if result.overall_winner == 'A' or result.overall_winner == 'B' %}&#9733;{% else %}&#61;{% endif %}
+        </div>
+        <div class="winner-text">
+            <h2>Переможець: {{ result.portfolios[0].name if result.overall_winner == 'A' else result.portfolios[1].name if result.overall_winner == 'B' else 'Нічия' }}</h2>
+            <p>{{ result.recommendation }}</p>
+        </div>
+    </div>
 </div>
 
 <div class="card">
-    <h2>Таблиця порівняння</h2>
-    <table>
-        <tr><th>Метрика</th><th>{{ result.portfolios[0].name }}</th><th>{{ result.portfolios[1].name }}</th><th>Різниця</th><th>Краще</th></tr>
-        {% for row in result.comparison_table %}
+    <h2 style="margin-bottom:14px;">Таблиця порівняння</h2>
+    <table class="compare-table">
         <tr>
+            <th style="width:30%;">Метрика</th>
+            <th style="width:22%;">
+                <span style="display:inline-flex;align-items:center;gap:6px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block;"></span>
+                    {{ result.portfolios[0].name }}
+                </span>
+            </th>
+            <th style="width:22%;">
+                <span style="display:inline-flex;align-items:center;gap:6px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:var(--orange);display:inline-block;"></span>
+                    {{ result.portfolios[1].name }}
+                </span>
+            </th>
+            <th style="width:14%;">Різниця</th>
+            <th style="width:12%;">Краще</th>
+        </tr>
+        {% for row in result.comparison_table %}
+        <tr class="{% if row.winner == 'A' %}row-winner-a{% elif row.winner == 'B' %}row-winner-b{% endif %}">
             <td><strong>{{ row.metric }}</strong></td>
-            <td>{% if row.value_a is number %}{{ fmt_uah(row.value_a) if row.value_a > 100 else row.value_a }}{% else %}{{ row.value_a }}{% endif %}</td>
-            <td>{% if row.value_b is number %}{{ fmt_uah(row.value_b) if row.value_b > 100 else row.value_b }}{% else %}{{ row.value_b }}{% endif %}</td>
-            <td>{% if row.difference is number %}{{ fmt_uah(row.difference) if row.difference|abs > 100 else row.difference }}{% else %}{{ row.difference }}{% endif %}</td>
+            <td class="{% if row.winner == 'A' %}winner-cell-a{% endif %}">{% if row.value_a is number %}{{ fmt_uah(row.value_a) if row.value_a > 100 else row.value_a }}{% else %}{{ row.value_a }}{% endif %}</td>
+            <td class="{% if row.winner == 'B' %}winner-cell-b{% endif %}">{% if row.value_b is number %}{{ fmt_uah(row.value_b) if row.value_b > 100 else row.value_b }}{% else %}{{ row.value_b }}{% endif %}</td>
+            <td class="diff-cell">{% if row.difference is number %}{{ fmt_uah(row.difference) if row.difference|abs > 100 else row.difference }}{% else %}{{ row.difference }}{% endif %}</td>
             <td>
-                {% if row.winner == 'A' %}<span class="tag tag-blue">A</span>
-                {% elif row.winner == 'B' %}<span class="tag tag-orange">B</span>
-                {% else %}<span class="tag tag-gray">=</span>{% endif %}
+                {% if row.winner == 'A' %}<span class="tag tag-blue" style="min-width:28px;text-align:center;">A</span>
+                {% elif row.winner == 'B' %}<span class="tag tag-orange" style="min-width:28px;text-align:center;">B</span>
+                {% else %}<span class="tag tag-gray" style="min-width:28px;text-align:center;">=</span>{% endif %}
             </td>
         </tr>
         {% endfor %}
     </table>
 </div>
-<a href="/compare">&larr; Нове порівняння</a>
+<a href="/compare" class="back-link">&larr; Нове порівняння</a>
 {% endif %}
 {% endblock %}
