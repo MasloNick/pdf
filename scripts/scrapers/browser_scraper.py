@@ -301,6 +301,83 @@ def _check_playwright() -> bool:
         return False
 
 
+# =====================================================================
+# EXTRACTION HELPERS — pull structured data from link text
+# =====================================================================
+
+# Matches Ukrainian currency amounts like "123 456 789,00 грн" or "1234567.89 грн"
+# Also matches plain large numbers (>= 10 000) that likely represent money.
+_RE_PRICE = re.compile(
+    r'(\d[\d\s]{2,}[\d](?:[,\.]\d{1,2})?)\s*(?:грн|UAH|₴)',
+    re.IGNORECASE,
+)
+_RE_LARGE_NUMBER = re.compile(
+    r'(\d[\d\s]{4,}\d(?:[,\.]\d{1,2})?)',
+)
+
+# Matches contract/credit counts like "15 договорів", "3 кредитних"
+_RE_CONTRACTS = re.compile(
+    r'(\d+)\s*(?:договор|кредитн|позик)',
+    re.IGNORECASE,
+)
+
+# Auction type keywords
+_AUCTION_KEYWORDS = {
+    'англійський': 'англійський',
+    'english': 'англійський',
+    'голландський': 'голландський',
+    'dutch': 'голландський',
+    'редукціон': 'редукціон',
+}
+
+
+def _extract_total_debt(text: str) -> str | None:
+    """Extract the largest price/amount from text (likely total debt)."""
+    # First try explicit currency amounts
+    matches = _RE_PRICE.findall(text)
+    if not matches:
+        # Fall back to large numbers (>=10 000)
+        matches = _RE_LARGE_NUMBER.findall(text)
+
+    if not matches:
+        return None
+
+    # Parse each match to a numeric value, pick the largest
+    best_raw = None
+    best_val = 0.0
+    for raw in matches:
+        cleaned = raw.replace(' ', '').replace(',', '.')
+        try:
+            val = float(cleaned)
+        except ValueError:
+            continue
+        if val >= 10_000 and val > best_val:
+            best_val = val
+            best_raw = raw.strip()
+
+    return best_raw
+
+
+def _extract_num_contracts(text: str) -> int | None:
+    """Extract number of contracts/credits from text."""
+    m = _RE_CONTRACTS.search(text)
+    if m:
+        try:
+            return int(m.group(1))
+        except ValueError:
+            pass
+    return None
+
+
+def _extract_auction_type(text: str) -> str | None:
+    """Detect auction type keyword in text."""
+    lower = text.lower()
+    for keyword, canonical in _AUCTION_KEYWORDS.items():
+        if keyword in lower:
+            return canonical
+    return None
+
+
 def scan_with_browser(timeout_ms: int = 15000) -> Dict[str, Any]:
     """Scan all sources using real Chromium browser."""
     if not _check_playwright():
@@ -346,14 +423,18 @@ def scan_with_browser(timeout_ms: int = 15000) -> Dict[str, Any]:
                         text_lower = link["text"].lower()
                         if any(kw in text_lower for kw in src["keywords"]):
                             if not any(l["url"] == link["href"] for l in all_lots):
-                                all_lots.append({
+                                lot: Dict[str, Any] = {
                                     "source": src["name"],
                                     "title": link["text"],
                                     "url": link["href"],
                                     "category": "active",
                                     "status": "знайдено скрапером",
                                     "priority": src.get("priority", 3),
-                                })
+                                    "total_debt": _extract_total_debt(link["text"]),
+                                    "num_contracts": _extract_num_contracts(link["text"]),
+                                    "auction_type": _extract_auction_type(link["text"]),
+                                }
+                                all_lots.append(lot)
 
                     scanned += 1
                     LOGGER.info("Browser: %s — %d посилань, %d відповідних",
@@ -406,3 +487,84 @@ def scan_lot_details(lot_url: str, timeout_ms: int = 15000) -> Dict[str, Any]:
 
     except Exception as exc:
         return {"error": str(exc), "url": lot_url}
+
+
+def scan_priority_only(timeout_ms: int = 15000) -> Dict[str, Any]:
+    """Scan only priority 1 and 2 sources for a faster scan cycle.
+
+    Uses the same extraction logic as *scan_with_browser* but skips
+    lower-priority sources (banks, MFIs, registries, analytics) so the
+    scan completes much faster.
+    """
+    if not _check_playwright():
+        return {
+            "lots": [],
+            "errors": ["Playwright не встановлено. Виконайте: pip install playwright && python -m playwright install chromium"],
+            "sources_scanned": 0,
+        }
+
+    from playwright.sync_api import sync_playwright
+
+    priority_sources = [s for s in BROWSER_SOURCES if s.get("priority", 99) <= 2]
+    all_lots: List[Dict[str, Any]] = []
+    errors: List[str] = []
+    scanned = 0
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+                locale="uk-UA",
+            )
+
+            for src in priority_sources:
+                try:
+                    page = context.new_page()
+                    LOGGER.info("Priority scan: loading %s", src["url"])
+                    page.goto(src["url"], timeout=timeout_ms, wait_until="networkidle")
+
+                    links = page.evaluate("""() => {
+                        const results = [];
+                        document.querySelectorAll('a').forEach(a => {
+                            const text = (a.textContent || '').trim();
+                            const href = a.href || '';
+                            if (text.length > 5 && href.startsWith('http')) {
+                                results.push({text: text.substring(0, 300), href: href});
+                            }
+                        });
+                        return results;
+                    }""")
+
+                    for link in links:
+                        text_lower = link["text"].lower()
+                        if any(kw in text_lower for kw in src["keywords"]):
+                            if not any(l["url"] == link["href"] for l in all_lots):
+                                lot: Dict[str, Any] = {
+                                    "source": src["name"],
+                                    "title": link["text"],
+                                    "url": link["href"],
+                                    "category": "active",
+                                    "status": "знайдено скрапером",
+                                    "priority": src.get("priority", 3),
+                                    "total_debt": _extract_total_debt(link["text"]),
+                                    "num_contracts": _extract_num_contracts(link["text"]),
+                                    "auction_type": _extract_auction_type(link["text"]),
+                                }
+                                all_lots.append(lot)
+
+                    scanned += 1
+                    LOGGER.info("Priority scan: %s — %d посилань, %d відповідних",
+                                src["name"], len(links), len([l for l in all_lots if l["source"] == src["name"]]))
+                    page.close()
+
+                except Exception as exc:
+                    errors.append(f"{src['name']}: {exc}")
+                    LOGGER.warning("Priority scan error %s: %s", src["name"], exc)
+
+            browser.close()
+
+    except Exception as exc:
+        errors.append(f"Browser launch error: {exc}")
+
+    return {"lots": all_lots, "errors": errors, "sources_scanned": scanned}

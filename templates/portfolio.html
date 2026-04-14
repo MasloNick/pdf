@@ -1,19 +1,70 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+    .upload-zone {
+        background: var(--bg3); border: 2px dashed var(--border); border-radius: 12px;
+        padding: 32px 24px; text-align: center; margin-bottom: 16px;
+        transition: all 0.2s ease; cursor: pointer; position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--accent); background: rgba(99,102,241,0.06);
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .upload-zone .upload-icon {
+        font-size: 2.5rem; margin-bottom: 10px; display: block;
+        filter: grayscale(0.3); transition: filter 0.2s;
+    }
+    .upload-zone:hover .upload-icon { filter: grayscale(0); }
+    .upload-zone .upload-hint {
+        font-size: 0.82rem; color: var(--text2); margin-top: 6px;
+    }
+    .upload-zone .upload-label {
+        font-size: 0.92rem; color: var(--text); font-weight: 500;
+    }
+    .upload-zone input[type="file"] {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        opacity: 0; cursor: pointer; background: transparent; border: none;
+        margin: 0; padding: 0;
+    }
+    .section-header {
+        display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+        padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .section-header .header-icon {
+        width: 36px; height: 36px; border-radius: 10px; display: flex;
+        align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .section-header h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .section-header p { margin: 0; font-size: 0.8rem; color: var(--text2); }
+    .columns-table td, .columns-table th {
+        padding: 8px 12px; font-size: 0.82rem;
+    }
+    .columns-table code { font-size: 0.78rem; }
+</style>
+
 <h2 style="margin-bottom:20px;">Аналіз портфеля</h2>
 
 <div class="two-col">
     <div class="card" style="border-left:3px solid var(--accent);">
-        <h2>Завантажте CSV-файл</h2>
-        <p style="color:var(--text2);font-size:0.88rem;margin-bottom:16px;">
+        <div class="section-header">
+            <div class="header-icon" style="background:rgba(99,102,241,0.12);color:var(--accent);">&#128196;</div>
+            <div>
+                <h2>Завантажте CSV-файл</h2>
+                <p>Автоматичний скоринг A-F, аналітика та ціна</p>
+            </div>
+        </div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:16px;">
             Система автоматично розпізнає колонки, порахує аналітику, скоринг A-F, рекомендовану ціну та рівень ризику.
         </p>
         <form method="post" enctype="multipart/form-data">
             <input type="hidden" name="mode" value="csv">
-            <div style="background:var(--bg3);border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;margin-bottom:16px;">
-                <div style="font-size:2rem;margin-bottom:8px;">&#128196;</div>
-                <input type="file" name="file" accept=".csv" style="max-width:100%;background:transparent;border:none;">
+            <div class="upload-zone" id="csvDropZone">
+                <span class="upload-icon">&#128196;</span>
+                <span class="upload-label">Перетягніть CSV-файл сюди</span>
+                <span class="upload-hint">або натисніть для вибору файлу</span>
+                <input type="file" name="file" accept=".csv" id="csvFileInput">
             </div>
+            <div id="csvFileName" style="display:none;background:var(--green-bg);color:var(--green);padding:8px 12px;border-radius:8px;font-size:0.85rem;margin-bottom:12px;text-align:center;"></div>
             <label>Запитувана ціна (грн, якщо відома):</label>
             <input type="number" name="asking_price" step="0.01" placeholder="напр. 500000">
             <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:0.95rem;margin-top:8px;">
@@ -23,8 +74,14 @@
     </div>
 
     <div class="card" style="border-left:3px solid var(--green);">
-        <h2>Аналіз за посиланням на торги</h2>
-        <p style="color:var(--text2);font-size:0.88rem;margin-bottom:16px;">
+        <div class="section-header">
+            <div class="header-icon" style="background:var(--green-bg);color:var(--green);">&#128279;</div>
+            <div>
+                <h2>Аналіз за посиланням на торги</h2>
+                <p>ProZorro, SETAM, UBIZ</p>
+            </div>
+        </div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:16px;">
             Вставте посилання на лот (ProZorro, SETAM, UBIZ) — система сама зайде, витягне дані та проаналізує.
         </p>
         <form method="post">
@@ -38,18 +95,40 @@
             </button>
         </form>
 
-        <h2 style="margin-top:20px;">Підтримувані колонки CSV</h2>
-        <table style="font-size:0.82rem;">
-            <tr><th>Поле</th><th>Можливі назви</th></tr>
-            <tr><td>Тип боржника</td><td><code>тип</code> <code>debtor_type</code></td></tr>
-            <tr><td>Назва / ПІБ</td><td><code>назва</code> <code>name</code> <code>піб</code></td></tr>
-            <tr><td>ЄДРПОУ</td><td><code>єдрпоу</code> <code>edrpou</code></td></tr>
-            <tr><td>Загальний борг</td><td><code>борг</code> <code>total</code> <code>сума боргу</code></td></tr>
-            <tr><td>Тіло</td><td><code>тіло</code> <code>principal</code></td></tr>
-            <tr><td>Відсотки</td><td><code>відсотки</code> <code>interest</code></td></tr>
-            <tr><td>Пеня</td><td><code>пеня</code> <code>penalty</code></td></tr>
-            <tr><td>Регіон</td><td><code>регіон</code> <code>region</code></td></tr>
-        </table>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+            <h3 style="font-size:0.88rem;font-weight:600;color:var(--text2);margin-bottom:10px;">Підтримувані колонки CSV</h3>
+            <table class="columns-table" style="font-size:0.82rem;">
+                <tr><th>Поле</th><th>Можливі назви</th></tr>
+                <tr><td>Тип боржника</td><td><code>тип</code> <code>debtor_type</code></td></tr>
+                <tr><td>Назва / ПІБ</td><td><code>назва</code> <code>name</code> <code>піб</code></td></tr>
+                <tr><td>ЄДРПОУ</td><td><code>єдрпоу</code> <code>edrpou</code></td></tr>
+                <tr><td>Загальний борг</td><td><code>борг</code> <code>total</code> <code>сума боргу</code></td></tr>
+                <tr><td>Тіло</td><td><code>тіло</code> <code>principal</code></td></tr>
+                <tr><td>Відсотки</td><td><code>відсотки</code> <code>interest</code></td></tr>
+                <tr><td>Пеня</td><td><code>пеня</code> <code>penalty</code></td></tr>
+                <tr><td>Регіон</td><td><code>регіон</code> <code>region</code></td></tr>
+            </table>
+        </div>
     </div>
 </div>
+
+<script>
+(function() {
+    var zone = document.getElementById('csvDropZone');
+    var input = document.getElementById('csvFileInput');
+    var nameEl = document.getElementById('csvFileName');
+    if (!zone) return;
+    ['dragenter','dragover'].forEach(function(ev) {
+        zone.addEventListener(ev, function(e) { e.preventDefault(); zone.classList.add('dragover'); });
+    });
+    ['dragleave','drop'].forEach(function(ev) {
+        zone.addEventListener(ev, function(e) { e.preventDefault(); zone.classList.remove('dragover'); });
+    });
+    zone.addEventListener('drop', function(e) {
+        if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; showName(input.files[0].name); }
+    });
+    input.addEventListener('change', function() { if (input.files.length) showName(input.files[0].name); });
+    function showName(n) { nameEl.textContent = 'Обрано: ' + n; nameEl.style.display = 'block'; }
+})();
+</script>
 {% endblock %}
