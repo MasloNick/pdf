@@ -378,8 +378,121 @@ def _extract_auction_type(text: str) -> str | None:
     return None
 
 
-def scan_with_browser(timeout_ms: int = 15000) -> Dict[str, Any]:
-    """Scan all sources using real Chromium browser."""
+def _is_auction_url(url: str) -> bool:
+    """Check if URL looks like an actual auction lot, not a news article."""
+    lot_patterns = [
+        "/auction/", "/sale3/auction/", "/lot/", "/PositionList",
+        "prozorro.sale/auction/", "setam.net.ua/auction/",
+        "ubiz.ua/sale3/", "uub.com.ua/auction/",
+        "e-tender.ua/", "smarttender.biz/",
+        "neb.org.ua/", "polonex.com.ua/",
+        "auction.org.ua/", "torgi.fg.gov.ua/",
+    ]
+    news_patterns = [
+        "/news/", "/blog/", "/article/", "/press/",
+        "/about/", "/info/", "/faq/", "/rules/",
+        "/contacts/", "/login/", "/register/",
+        "/poryadok", "/pravila", "/instruk",
+        "wikipedia.org", "facebook.com", "instagram.com",
+        "telegram.me", "t.me/", "youtube.com",
+    ]
+    url_lower = url.lower()
+    # Reject news/info pages
+    if any(p in url_lower for p in news_patterns):
+        return False
+    # Accept known auction patterns
+    if any(p in url_lower for p in lot_patterns):
+        return True
+    # Accept if URL has auction-like ID pattern
+    if re.search(r'[A-Z]{2,3}\d{3}-UA-\d{8}', url):
+        return True
+    return False
+
+
+def _enrich_lot_with_details(page, lot: Dict[str, Any], timeout_ms: int = 10000) -> Dict[str, Any]:
+    """Navigate to lot page and extract details: price, date, status, guarantee."""
+    import datetime
+    url = lot.get("url", "")
+    if not url:
+        return lot
+
+    try:
+        page.goto(url, timeout=timeout_ms, wait_until="networkidle")
+        text = page.inner_text("body")[:5000]
+    except Exception:
+        return lot
+
+    # Extract fields
+    patterns = {
+        "lot_status": r"(?:Стан аукціон[аи]|Статус)[:\s]*(.*?)(?:\n|$)",
+        "auction_date_raw": r"(?:Дата проведення|Дата аукціону)[:\s]*([\d]+[.\s/\-]+[\d]+[.\s/\-]+[\d]{4}(?:\s*\d{1,2}:\d{2})?)",
+        "end_reg_date": r"(?:Дата закінчення подання заявок|закінчення реєстрації)[:\s]*([\d]+[.\s/\-]+[\d]+[.\s/\-]+[\d]{4})",
+        "start_price_raw": r"(?:Стартова ціна|Початкова ціна)[:\s]*([\d\s,.]+)",
+        "guarantee_raw": r"(?:Гарантійний внесок)[:\s]*([\d\s,.]+)",
+        "num_contracts_raw": r"(\d[\d\s]*)\s*(?:договор|кредитн|позик|актив)",
+    }
+    for key, pat in patterns.items():
+        match = re.search(pat, text, re.IGNORECASE)
+        if match:
+            lot[key] = match.group(1).strip()
+
+    # Parse status
+    status = lot.get("lot_status", "").lower()
+    if "відбулися" in status or "завершен" in status or "продано" in status:
+        lot["category"] = "history"
+        lot["status"] = "торги відбулися"
+    elif "не відбу" in status:
+        lot["category"] = "watching"
+        lot["status"] = "не відбувся"
+        lot["watch_reason"] = "Аукціон не відбувся — можливе перевиставлення зі зниженою ціною."
+    elif "прийом заявок" in status or "очікується" in status:
+        lot["status"] = "прийом заявок"
+
+    # Parse auction date and check if past
+    date_raw = lot.get("auction_date_raw", "")
+    if date_raw:
+        # Try parsing DD.MM.YYYY or DD/MM/YYYY
+        for fmt in ["%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y", "%d %m %Y"]:
+            try:
+                dt = datetime.datetime.strptime(date_raw[:10].replace("/", ".").replace("-", "."), "%d.%m.%Y")
+                lot["auction_date"] = dt.strftime("%Y-%m-%d")
+                if dt.date() <= datetime.date.today():
+                    lot["category"] = "history"
+                    if "status" not in lot or lot["status"] == "знайдено скрапером":
+                        lot["status"] = f"минув {lot['auction_date']}"
+                break
+            except ValueError:
+                continue
+
+    # Parse start price
+    price_raw = lot.get("start_price_raw", "")
+    if price_raw:
+        try:
+            lot["start_price"] = float(price_raw.replace(" ", "").replace(",", "."))
+        except ValueError:
+            lot["start_price_text"] = price_raw
+
+    # Parse guarantee
+    guarantee_raw = lot.get("guarantee_raw", "")
+    if guarantee_raw:
+        lot["guarantee"] = guarantee_raw + " грн"
+
+    # Parse num contracts
+    nc = lot.get("num_contracts_raw", "")
+    if nc and not lot.get("num_contracts"):
+        try:
+            lot["num_contracts"] = int(nc.replace(" ", ""))
+        except ValueError:
+            pass
+
+    return lot
+
+
+def scan_with_browser(timeout_ms: int = 15000, enrich: bool = True) -> Dict[str, Any]:
+    """Scan all sources using real Chromium browser.
+
+    If enrich=True, navigates to each found lot to extract details.
+    """
     if not _check_playwright():
         return {
             "lots": [],
@@ -421,29 +534,47 @@ def scan_with_browser(timeout_ms: int = 15000) -> Dict[str, Any]:
 
                     for link in links:
                         text_lower = link["text"].lower()
-                        if any(kw in text_lower for kw in src["keywords"]):
-                            if not any(l["url"] == link["href"] for l in all_lots):
-                                lot: Dict[str, Any] = {
-                                    "source": src["name"],
-                                    "title": link["text"],
-                                    "url": link["href"],
-                                    "category": "active",
-                                    "status": "знайдено скрапером",
-                                    "priority": src.get("priority", 3),
-                                    "total_debt": _extract_total_debt(link["text"]),
-                                    "num_contracts": _extract_num_contracts(link["text"]),
-                                    "auction_type": _extract_auction_type(link["text"]),
-                                }
-                                all_lots.append(lot)
+                        href = link["href"]
+                        if not any(kw in text_lower for kw in src["keywords"]):
+                            continue
+                        if any(l["url"] == href for l in all_lots):
+                            continue
+                        # Filter: only auction URLs, not news/articles
+                        if not _is_auction_url(href):
+                            continue
+                        lot: Dict[str, Any] = {
+                            "source": src["name"],
+                            "title": link["text"],
+                            "url": href,
+                            "category": "active",
+                            "status": "знайдено скрапером",
+                            "priority": src.get("priority", 3),
+                            "total_debt": _extract_total_debt(link["text"]),
+                            "num_contracts": _extract_num_contracts(link["text"]),
+                            "auction_type": _extract_auction_type(link["text"]),
+                        }
+                        all_lots.append(lot)
 
                     scanned += 1
-                    LOGGER.info("Browser: %s — %d посилань, %d відповідних",
+                    LOGGER.info("Browser: %s — %d посилань, %d лотів",
                                 src["name"], len(links), len([l for l in all_lots if l["source"] == src["name"]]))
                     page.close()
 
                 except Exception as exc:
                     errors.append(f"{src['name']}: {exc}")
                     LOGGER.warning("Browser error %s: %s", src["name"], exc)
+
+            # Phase 2: Enrich each lot by visiting its page
+            if enrich and all_lots:
+                LOGGER.info("Збагачення: заходимо на %d лотів для отримання деталей...", len(all_lots))
+                enrich_page = context.new_page()
+                for i, lot in enumerate(all_lots):
+                    try:
+                        LOGGER.info("  [%d/%d] %s", i + 1, len(all_lots), lot["url"][:60])
+                        _enrich_lot_with_details(enrich_page, lot, timeout_ms=10000)
+                    except Exception as exc:
+                        LOGGER.warning("  Збагачення помилка %s: %s", lot["url"][:40], exc)
+                enrich_page.close()
 
             browser.close()
 
