@@ -25,6 +25,23 @@
     </div>
 </div>
 
+{% if stats and (stats.by_status or stats.by_type) %}
+<div class="charts-grid">
+    {% if stats.by_status %}
+    <div class="chart-card">
+        <h3>Справи за статусом</h3>
+        <canvas id="statusChart" height="220"></canvas>
+    </div>
+    {% endif %}
+    {% if stats.by_type %}
+    <div class="chart-card">
+        <h3>Справи за типом</h3>
+        <canvas id="typeChart" height="220"></canvas>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
 {% if upcoming_deadlines %}
 <div class="card">
     <h3>&#9200; Найближчі дедлайни</h3>
@@ -105,7 +122,6 @@
     </a>
 </div>
 
-<!-- Quick search -->
 <div class="card" style="margin-top: 1rem;">
     <h3>&#x1F50E; Швидкий пошук суду</h3>
     <form method="get" action="/courts" style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -113,4 +129,60 @@
         <button type="submit" class="btn btn-primary">Знайти</button>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if stats and (stats.by_status or stats.by_type) %}
+<script>
+    const chartColors = ['#e94560', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#e74c3c', '#1abc9c', '#e67e22'];
+    const chartOptions = {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#8888aa', padding: 12, font: { size: 12 } }
+            }
+        }
+    };
+
+    {% if stats.by_status %}
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ stats.by_status.keys()|list|tojson }},
+            datasets: [{
+                data: {{ stats.by_status.values()|list|tojson }},
+                backgroundColor: chartColors,
+                borderColor: '#12121a',
+                borderWidth: 2
+            }]
+        },
+        options: chartOptions
+    });
+    {% endif %}
+
+    {% if stats.by_type %}
+    new Chart(document.getElementById('typeChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ stats.by_type.keys()|list|tojson }},
+            datasets: [{
+                label: 'Кількість справ',
+                data: {{ stats.by_type.values()|list|tojson }},
+                backgroundColor: chartColors,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#8888aa', stepSize: 1 }, grid: { color: '#2a2a3e' } },
+                x: { ticks: { color: '#8888aa' }, grid: { display: false } }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endif %}
 {% endblock %}

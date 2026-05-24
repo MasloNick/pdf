@@ -1,13 +1,14 @@
-"""CourtNinja — Судовий Ніндзя v2.0
+"""CourtNinja — Судовий Ніндзя v2.1
 
 Professional CRM web application for working with Ukrainian courts.
-Features: court search, case management, fee calculator, document generator,
+Features: auth, court search, case management, fee calculator, document generator,
 deadline tracker, official sources collector.
 """
 
-from flask import Flask, request, render_template, send_file, redirect, url_for, flash
+from flask import Flask, request, render_template, send_file, redirect, url_for, flash, session
 import csv
 import io
+import json
 from pathlib import Path
 import sys
 from typing import List, Dict
@@ -43,25 +44,35 @@ from scripts.document_generator import (  # noqa: E402
     generate_motion,
     generate_court_order_application,
 )
+from scripts.auth import UserManager, ROLES, login_required, role_required  # noqa: E402
 
-# Initialize services
 court_db = CourtDatabase()
 case_mgr = CaseManager()
+user_mgr = UserManager()
+
+
+def current_user_id() -> str:
+    return session.get("user_id", "")
+
+
+@app.context_processor
+def inject_user():
+    user = None
+    if "user_id" in session:
+        user = user_mgr.get_user(session["user_id"])
+    return dict(current_user=user, roles=ROLES)
 
 
 def normalize(text: str) -> str:
-    """Very basic normalisation for demonstration."""
     return " ".join(text.strip().title().split())
 
 
 def resolve_code(oblast: str, district: str, settlement: str) -> str:
-    """Return a dummy code built from components."""
     parts = [normalize(p) for p in (oblast, district, settlement) if p]
     return "-".join(parts)
 
 
 def find_court(code: str) -> str:
-    """Lookup court by code using the database."""
     parts = code.split("-")
     settlement = parts[-1] if parts else code
     results = court_db.find_by_settlement(settlement)
@@ -71,7 +82,6 @@ def find_court(code: str) -> str:
 
 
 def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Dict[str, str]]:
-    """Process list of address dictionaries and append court info."""
     processed = []
     for row in rows:
         oblast = row.get("oblast", "")
@@ -93,11 +103,73 @@ def process_file(rows: List[Dict[str, str]], normalise: bool = False) -> List[Di
 
 
 # ============================================================
+# Auth
+# ============================================================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        user = user_mgr.authenticate(email, password)
+        if user:
+            session["user_id"] = user.id
+            session["user_role"] = user.role
+            session["user_name"] = user.username
+            flash(f"Ласкаво просимо, {user.username}!", "success")
+            return redirect(url_for("index"))
+        flash("Невірний email або пароль", "danger")
+    return render_template("login.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        role = request.form.get("role", "advocate")
+        if len(password) < 6:
+            flash("Пароль має бути не менше 6 символів", "danger")
+            return render_template("register.html")
+        user = user_mgr.register(username, email, password, role)
+        if not user:
+            flash("Користувач з таким email вже існує", "danger")
+            return render_template("register.html")
+        session["user_id"] = user.id
+        session["user_role"] = user.role
+        session["user_name"] = user.username
+        flash("Реєстрація успішна!", "success")
+        return redirect(url_for("index"))
+    return render_template("register.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Ви вийшли з системи", "info")
+    return redirect(url_for("login"))
+
+
+@app.route("/profile")
+@login_required
+def profile():
+    user = user_mgr.get_user(current_user_id())
+    return render_template("profile.html", user=user, roles=ROLES)
+
+
+# ============================================================
 # Dashboard
 # ============================================================
 
 @app.route("/", methods=["GET", "POST"])
+@login_required
 def index():
+    uid = current_user_id()
     if request.method == "POST":
         oblast = request.form.get("oblast", "")
         district = request.form.get("district", "")
@@ -111,9 +183,9 @@ def index():
         court = find_court(code)
         return render_template("result.html", result=court)
 
-    upcoming = case_mgr.get_upcoming_deadlines(days=14)
+    upcoming = case_mgr.get_upcoming_deadlines(days=14, user_id=uid)
     overdue = [d for d in upcoming if d.get("is_overdue")]
-    stats = case_mgr.stats()
+    stats = case_mgr.stats(user_id=uid)
 
     return render_template(
         "index.html",
@@ -122,6 +194,7 @@ def index():
         deadline_count=len(upcoming),
         overdue_count=len(overdue),
         upcoming_deadlines=upcoming,
+        stats=stats,
     )
 
 
@@ -130,6 +203,7 @@ def index():
 # ============================================================
 
 @app.route("/courts")
+@login_required
 def courts():
     query = request.args.get("q", "")
     oblast = request.args.get("oblast", "")
@@ -153,12 +227,14 @@ def courts():
 # ============================================================
 
 @app.route("/cases")
+@login_required
 def cases():
+    uid = current_user_id()
     query = request.args.get("q", "")
     status = request.args.get("status", "")
     case_type = request.args.get("case_type", "")
 
-    results = case_mgr.list_cases(status=status, case_type=case_type, query=query)
+    results = case_mgr.list_cases(status=status, case_type=case_type, query=query, user_id=uid)
 
     return render_template(
         "cases.html",
@@ -172,6 +248,8 @@ def cases():
 
 
 @app.route("/cases/new", methods=["GET", "POST"])
+@login_required
+@role_required("advocate", "assistant")
 def case_new():
     if request.method == "POST":
         court_id = request.form.get("court_id", "")
@@ -186,6 +264,7 @@ def case_new():
             court_name=court_name,
             description=request.form.get("description", ""),
             judge=request.form.get("judge", ""),
+            user_id=current_user_id(),
         )
         flash("Справу створено!", "success")
         return redirect(url_for("case_detail", case_id=case.id))
@@ -200,9 +279,10 @@ def case_new():
 
 
 @app.route("/cases/<case_id>")
+@login_required
 def case_detail(case_id):
     case = case_mgr.get_case(case_id)
-    if not case:
+    if not case or (case.user_id and case.user_id != current_user_id()):
         flash("Справу не знайдено", "danger")
         return redirect(url_for("cases"))
 
@@ -215,9 +295,11 @@ def case_detail(case_id):
 
 
 @app.route("/cases/<case_id>/edit", methods=["GET", "POST"])
+@login_required
+@role_required("advocate", "assistant")
 def case_edit(case_id):
     case = case_mgr.get_case(case_id)
-    if not case:
+    if not case or (case.user_id and case.user_id != current_user_id()):
         flash("Справу не знайдено", "danger")
         return redirect(url_for("cases"))
 
@@ -251,13 +333,21 @@ def case_edit(case_id):
 
 
 @app.route("/cases/<case_id>/delete", methods=["POST"])
+@login_required
+@role_required("advocate")
 def case_delete(case_id):
+    case = case_mgr.get_case(case_id)
+    if case and case.user_id and case.user_id != current_user_id():
+        flash("Немає прав для видалення", "danger")
+        return redirect(url_for("cases"))
     case_mgr.delete_case(case_id)
     flash("Справу видалено", "success")
     return redirect(url_for("cases"))
 
 
 @app.route("/cases/<case_id>/party", methods=["POST"])
+@login_required
+@role_required("advocate", "assistant")
 def case_add_party(case_id):
     party = {
         "name": request.form.get("name", ""),
@@ -270,6 +360,8 @@ def case_add_party(case_id):
 
 
 @app.route("/cases/<case_id>/deadline", methods=["POST"])
+@login_required
+@role_required("advocate", "assistant")
 def case_add_deadline(case_id):
     case_mgr.add_deadline(
         case_id,
@@ -282,6 +374,7 @@ def case_add_deadline(case_id):
 
 
 @app.route("/cases/<case_id>/deadline/<deadline_id>/complete", methods=["POST"])
+@login_required
 def case_complete_deadline(case_id, deadline_id):
     case_mgr.complete_deadline(case_id, deadline_id)
     flash("Дедлайн завершено", "success")
@@ -289,8 +382,9 @@ def case_complete_deadline(case_id, deadline_id):
 
 
 @app.route("/cases/<case_id>/note", methods=["POST"])
+@login_required
 def case_add_note(case_id):
-    case_mgr.add_note(case_id, text=request.form.get("text", ""))
+    case_mgr.add_note(case_id, text=request.form.get("text", ""), author=session.get("user_name", "user"))
     flash("Нотатку додано", "success")
     return redirect(url_for("case_detail", case_id=case_id))
 
@@ -300,8 +394,10 @@ def case_add_note(case_id):
 # ============================================================
 
 @app.route("/deadlines")
+@login_required
 def deadlines():
-    all_deadlines = case_mgr.get_upcoming_deadlines(days=30)
+    uid = current_user_id()
+    all_deadlines = case_mgr.get_upcoming_deadlines(days=30, user_id=uid)
     overdue = [d for d in all_deadlines if d.get("is_overdue")]
 
     return render_template(
@@ -316,6 +412,7 @@ def deadlines():
 # ============================================================
 
 @app.route("/calculator", methods=["GET", "POST"])
+@login_required
 def calculator():
     selected_category = request.form.get("category", request.args.get("category", "civil"))
     selected_index = 0
@@ -353,6 +450,7 @@ def calculator():
 # ============================================================
 
 @app.route("/documents", methods=["GET"])
+@login_required
 def documents():
     doc_type = request.args.get("type", "")
     return render_template(
@@ -364,6 +462,7 @@ def documents():
 
 
 @app.route("/documents/generate", methods=["POST"])
+@login_required
 def documents_generate():
     doc_type = request.form.get("doc_type", "")
     generated = ""
@@ -448,6 +547,7 @@ def documents_generate():
 # ============================================================
 
 @app.route("/batch", methods=["GET", "POST"])
+@login_required
 def batch():
     if request.method == "POST":
         file = request.files.get("file")
@@ -467,6 +567,7 @@ def batch():
 # ============================================================
 
 @app.route("/official-sources")
+@login_required
 def official_sources():
     download = request.args.get("download")
     collector = OfficialSourceCollector(OFFICIAL_SOURCES)
@@ -508,6 +609,7 @@ def official_sources():
 # ============================================================
 
 @app.route("/normalize", methods=["GET", "POST"])
+@login_required
 def normalize_route():
     if request.method == "POST":
         file = request.files.get("file")
@@ -529,6 +631,18 @@ def normalize_route():
                          as_attachment=True,
                          download_name="normalized.csv")
     return render_template("normalize.html")
+
+
+# ============================================================
+# API: stats for charts
+# ============================================================
+
+@app.route("/api/stats")
+@login_required
+def api_stats():
+    uid = current_user_id()
+    stats = case_mgr.stats(user_id=uid)
+    return json.dumps(stats, ensure_ascii=False)
 
 
 if __name__ == "__main__":

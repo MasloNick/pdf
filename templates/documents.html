@@ -258,6 +258,8 @@
         <h3>&#x1F4C4; Згенерований документ</h3>
         <div class="btn-group">
             <button onclick="copyDoc()" class="btn btn-secondary btn-sm">&#x1F4CB; Копіювати</button>
+            <button onclick="printDoc()" class="btn btn-secondary btn-sm">&#x1F5A8; Друкувати</button>
+            <button onclick="downloadDoc()" class="btn btn-secondary btn-sm">&#x1F4E5; Завантажити .txt</button>
         </div>
     </div>
     <div class="doc-preview" id="doc-content">{{ generated_doc }}</div>
@@ -268,6 +270,19 @@ function copyDoc() {
     navigator.clipboard.writeText(text).then(() => {
         alert('Документ скопійовано!');
     });
+}
+function printDoc() {
+    window.print();
+}
+function downloadDoc() {
+    const text = document.getElementById('doc-content').innerText;
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'document.txt';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 </script>
 {% endif %}

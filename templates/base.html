@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}CourtNinja — Судовий Ніндзя{% endblock %}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --bg-dark: #0a0a0f;
@@ -31,6 +32,33 @@
             min-height: 100vh;
         }
 
+        /* --- Animations --- */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .card, .stat-card, .feature-card, .fee-result {
+            animation: fadeInUp 0.4s ease-out both;
+        }
+
+        .card-grid > *, .stats-grid > * {
+            animation: fadeInUp 0.4s ease-out both;
+        }
+        .card-grid > *:nth-child(1), .stats-grid > *:nth-child(1) { animation-delay: 0.05s; }
+        .card-grid > *:nth-child(2), .stats-grid > *:nth-child(2) { animation-delay: 0.1s; }
+        .card-grid > *:nth-child(3), .stats-grid > *:nth-child(3) { animation-delay: 0.15s; }
+        .card-grid > *:nth-child(4), .stats-grid > *:nth-child(4) { animation-delay: 0.2s; }
+        .card-grid > *:nth-child(5) { animation-delay: 0.25s; }
+        .card-grid > *:nth-child(6) { animation-delay: 0.3s; }
+        .card-grid > *:nth-child(7) { animation-delay: 0.35s; }
+        .card-grid > *:nth-child(8) { animation-delay: 0.4s; }
+
         /* --- Navigation --- */
         .navbar {
             background: linear-gradient(135deg, #0a0a0f 0%, #16213e 100%);
@@ -54,6 +82,7 @@
             font-size: 1.4rem;
             font-weight: 800;
             letter-spacing: -0.5px;
+            flex-shrink: 0;
         }
 
         .logo-icon {
@@ -65,6 +94,7 @@
             display: flex;
             gap: 0.3rem;
             flex-wrap: wrap;
+            flex: 1;
         }
 
         .nav-links a {
@@ -86,11 +116,63 @@
             background: rgba(233, 69, 96, 0.1);
         }
 
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .nav-user-name {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .nav-user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #c73e54);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .nav-logout {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .nav-logout:hover {
+            color: var(--danger);
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        /* Mobile hamburger */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.3rem;
+        }
+
         /* --- Main content --- */
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 2rem;
+            animation: fadeIn 0.3s ease-out;
         }
 
         .page-header {
@@ -189,6 +271,7 @@
         input[type="number"],
         input[type="date"],
         input[type="email"],
+        input[type="password"],
         input[type="tel"],
         input[type="file"],
         select,
@@ -305,6 +388,11 @@
             border-radius: 20px;
             font-size: 0.78rem;
             font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .badge:hover {
+            transform: scale(1.05);
         }
 
         .badge-new { background: var(--info); color: #fff; }
@@ -321,6 +409,7 @@
             border-radius: 8px;
             margin-bottom: 1rem;
             border: 1px solid;
+            animation: fadeInUp 0.3s ease-out;
         }
 
         .alert-danger {
@@ -388,6 +477,14 @@
             gap: 1rem;
             padding: 0.8rem 0;
             border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+
+        .deadline-item:hover {
+            background: var(--bg-card-hover);
+            border-radius: 8px;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
         }
 
         .deadline-item:last-child {
@@ -458,25 +555,26 @@
             border-bottom-color: var(--accent);
         }
 
-        /* --- Responsive --- */
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                padding: 1rem;
-                gap: 0.8rem;
-            }
-            .nav-links {
-                justify-content: center;
-            }
-            .container {
-                padding: 1rem;
-            }
-            .card-grid, .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            .form-row {
-                grid-template-columns: 1fr;
-            }
+        /* --- Charts --- */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            animation: fadeInUp 0.4s ease-out both;
+        }
+
+        .chart-card h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1rem;
         }
 
         /* --- Checkbox --- */
@@ -510,6 +608,30 @@
             margin-top: 0.5rem;
         }
 
+        /* --- Breadcrumbs --- */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            color: var(--accent);
+        }
+
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+
         /* --- Footer --- */
         .footer {
             text-align: center;
@@ -519,6 +641,108 @@
             border-top: 1px solid var(--border);
             margin-top: 3rem;
         }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-wrap: wrap;
+                padding: 0.8rem 1rem;
+                gap: 0.5rem;
+            }
+
+            .nav-toggle {
+                display: block;
+                margin-left: auto;
+            }
+
+            .nav-links {
+                display: none;
+                width: 100%;
+                flex-direction: column;
+                gap: 0.2rem;
+            }
+
+            .nav-links.open {
+                display: flex;
+            }
+
+            .nav-links a {
+                padding: 0.6rem 1rem;
+                border-radius: 6px;
+            }
+
+            .nav-user {
+                order: -1;
+                margin-left: auto;
+                margin-right: 0.5rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .card-grid, .stats-grid, .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header h2 {
+                font-size: 1.4rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .btn-group {
+                flex-direction: column;
+            }
+            .deadline-item {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* --- Print styles --- */
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+            }
+            .navbar, .footer, .nav-toggle, .btn, .btn-group, .breadcrumb,
+            form, .alert, .stats-grid, .charts-grid, .card-grid {
+                display: none !important;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            .card {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                background: none;
+            }
+            .doc-preview {
+                background: #fff;
+                border: 1px solid #ccc;
+                color: #000;
+                max-height: none;
+                font-size: 12pt;
+                padding: 2cm;
+            }
+            .page-header h2 {
+                background: none;
+                -webkit-text-fill-color: #000;
+                color: #000;
+            }
+            a { color: #000; text-decoration: none; }
+        }
     </style>
 </head>
 <body>
@@ -527,6 +751,8 @@
             <span class="logo-icon">&#x2694;</span>
             CourtNinja
         </a>
+        {% if current_user %}
+        <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">&#x2630;</button>
         <div class="nav-links">
             <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Dashboard</a>
             <a href="/courts" {% if '/courts' in request.path %}class="active"{% endif %}>Суди</a>
@@ -537,6 +763,12 @@
             <a href="/batch" {% if '/batch' in request.path %}class="active"{% endif %}>Пакетна обробка</a>
             <a href="/official-sources" {% if '/official' in request.path %}class="active"{% endif %}>Джерела</a>
         </div>
+        <div class="nav-user">
+            <span class="nav-user-name">{{ current_user.username }}</span>
+            <a href="/profile" class="nav-user-avatar" title="Профіль">{{ current_user.username[0]|upper }}</a>
+            <a href="/logout" class="nav-logout" title="Вийти">Вийти</a>
+        </div>
+        {% endif %}
     </nav>
 
     <div class="container">
@@ -552,7 +784,9 @@
     </div>
 
     <footer class="footer">
-        CourtNinja &mdash; Судовий Ніндзя v2.0 &copy; 2025. Для інформаційних цілей.
+        CourtNinja &mdash; Судовий Ніндзя v2.1 &copy; 2025. Для інформаційних цілей.
     </footer>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

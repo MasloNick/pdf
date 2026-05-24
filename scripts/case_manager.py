@@ -89,6 +89,7 @@ class Case:
     next_hearing: str = ""
     fee_paid: float = 0.0
     fee_required: float = 0.0
+    user_id: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -152,6 +153,7 @@ class CaseManager:
         court_name: str,
         description: str = "",
         judge: str = "",
+        user_id: str = "",
     ) -> Case:
         now = datetime.now().isoformat()
         case = Case(
@@ -166,6 +168,7 @@ class CaseManager:
             updated_at=now,
             description=description,
             judge=judge,
+            user_id=user_id,
         )
         self._cases[case.id] = case
         self._save()
@@ -179,8 +182,11 @@ class CaseManager:
         status: str = "",
         case_type: str = "",
         query: str = "",
+        user_id: str = "",
     ) -> List[Case]:
         results = list(self._cases.values())
+        if user_id:
+            results = [c for c in results if c.user_id == user_id]
         if status:
             results = [c for c in results if c.status == status]
         if case_type:
@@ -268,11 +274,14 @@ class CaseManager:
         self._save()
         return case
 
-    def get_upcoming_deadlines(self, days: int = 7) -> List[Dict]:
+    def get_upcoming_deadlines(self, days: int = 7, user_id: str = "") -> List[Dict]:
         """Get all deadlines across all cases due within N days."""
         cutoff = date.today() + timedelta(days=days)
         upcoming = []
-        for case in self._cases.values():
+        cases = self._cases.values()
+        if user_id:
+            cases = [c for c in cases if c.user_id == user_id]
+        for case in cases:
             for d in case.deadlines:
                 if d.get("completed"):
                     continue
@@ -290,13 +299,20 @@ class CaseManager:
                     })
         return sorted(upcoming, key=lambda x: x["due_date"])
 
-    def stats(self) -> Dict[str, int]:
+    def stats(self, user_id: str = "") -> Dict:
         """Return case statistics."""
+        cases = list(self._cases.values())
+        if user_id:
+            cases = [c for c in cases if c.user_id == user_id]
         by_status: Dict[str, int] = {}
-        for c in self._cases.values():
+        by_type: Dict[str, int] = {}
+        for c in cases:
             label = CASE_STATUSES.get(c.status, c.status)
             by_status[label] = by_status.get(label, 0) + 1
+            type_label = CASE_TYPES.get(c.case_type, c.case_type)
+            by_type[type_label] = by_type.get(type_label, 0) + 1
         return {
-            "total": len(self._cases),
+            "total": len(cases),
             "by_status": by_status,
+            "by_type": by_type,
         }
